@@ -168,7 +168,34 @@ tr:hover td { background: var(--bg3); }
 /* LOADING */
 .loading { display: flex; align-items: center; gap: 8px; color: var(--text2); font-size: 13px; padding: 24px; }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* 4 LICH CA NHAN */
+.personal-cal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+.pcal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pcal-name{font-size:13px;font-weight:600}
+.pcal-name-long{color:#4f7fff}
+.pcal-name-tram{color:#a78bfa}
+.pcal-name-uc{color:#fb923c}
+.pcal-name-hao{color:#34d399}
+.pcal-nav{display:flex;align-items:center;gap:6px}
+.pcal-nav-btn{background:var(--bg4);border:1px solid var(--border);color:var(--text2);width:22px;height:22px;border-radius:5px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.pcal-nav-btn:hover{color:var(--text);border-color:var(--text3)}
+.pcal-month-label{font-size:11px;color:var(--text2);min-width:60px;text-align:center}
+.pcal-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:3px 6px;font-family:inherit;margin-bottom:8px;width:100%}
+.pcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.pcal-dow{text-align:center;font-size:9px;color:var(--text3);font-weight:600;padding:3px 0}
+.pcal-day{text-align:center;font-size:11px;font-weight:500;padding:4px 2px;border-radius:5px;cursor:pointer;color:var(--text2);transition:all .12s;position:relative}
+.pcal-day:hover{background:var(--bg4)}
+.pcal-day.pcal-today{color:var(--accent);font-weight:700}
+.pcal-day.pcal-empty{cursor:default}
+.pcal-day.pcal-past{color:var(--text3)}
+.pcal-day.pcal-selected{background:var(--accent)!important;color:#fff!important}
+.pcal-day[data-load="1"]{background:#4f7fff22;color:#7fa8ff}
+.pcal-day[data-load="2"]{background:#4f7fff44;color:#a0bcff}
+.pcal-day[data-load="3"]{background:#fbbf2433;color:#fbbf24}
+.pcal-day[data-load="4"]{background:#f8717133;color:#f87171}
+.pcal-today-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;margin:1px auto 0}
+
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* SETUP SCREEN */
 .setup-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
@@ -302,7 +329,13 @@ tr:hover td { background: var(--bg3); }
       <div class="member-filter" id="memberFilter">
         <div class="member-chip active" data-member="all" onclick="filterMember('all',this)">Tat ca</div>
       </div>
-      <div class="kanban">
+      <!-- STICKY FILTER BAR khi loc theo ngay -->
+      <div id="calFilterBar" style="display:none;background:#1a2540;border:1px solid #2a4070;border-radius:8px;padding:8px 14px;margin-bottom:8px;display:none;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:#7fa8ff" id="calFilterLabel"></span>
+        <button onclick="clearCalFilter()" style="background:transparent;border:1px solid #2a4070;color:#8892a4;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">X Bo loc</button>
+      </div>
+
+      <div class="kanban" id="kanbanBoard">
         <div class="kanban-col col-todo">
           <div class="col-header"><span class="col-title">Can lam</span><span class="col-count" id="cnt-todo">0</span></div>
           <div class="task-cards" id="col-todo"></div>
@@ -318,6 +351,24 @@ tr:hover td { background: var(--bg3); }
         <div class="kanban-col col-blocked">
           <div class="col-header"><span class="col-title">Bi chan</span><span class="col-count" id="cnt-blocked">0</span></div>
           <div class="task-cards" id="col-blocked"></div>
+        </div>
+      </div>
+
+      <!-- 4 LICH CA NHAN -->
+      <div style="margin-top:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Lich ca nhan</div>
+          <div style="font-size:11px;color:var(--text3)">Bam o trong de giao viec — bam ngay co task de loc kanban</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="calGrid4"></div>
+
+        <!-- Legend -->
+        <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--bg4);border:1px solid var(--border);border-radius:3px;display:inline-block"></span>Trong</span>
+          <span style="font-size:11px;color:#7fa8ff;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#4f7fff22;border-radius:3px;display:inline-block"></span>1-2 task</span>
+          <span style="font-size:11px;color:#a0bcff;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#4f7fff44;border-radius:3px;display:inline-block"></span>3-4 task</span>
+          <span style="font-size:11px;color:#fbbf24;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#fbbf2433;border-radius:3px;display:inline-block"></span>5-7 task</span>
+          <span style="font-size:11px;color:#f87171;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#f8717133;border-radius:3px;display:inline-block"></span>8+ task</span>
         </div>
       </div>
     </div>
@@ -553,10 +604,47 @@ tr:hover td { background: var(--bg3); }
 </div>
 
 <!-- TASK MODAL -->
+<style>
+.task-modal-wrap { display:flex; gap:0; max-width:900px; width:100%; max-height:90vh; }
+.task-modal-left { flex:1; padding:24px; overflow-y:auto; }
+.task-modal-right { width:320px; min-width:320px; background:var(--bg3); border-left:1px solid var(--border); padding:20px; overflow-y:auto; border-radius:0 var(--r2) var(--r2) 0; }
+.task-modal-right .section-label { font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px; }
+.shop-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:4px; }
+.shop-tile { background:var(--bg4); border:1.5px solid var(--border); border-radius:8px; padding:8px 10px; cursor:pointer; transition:all .15s; }
+.shop-tile:hover { border-color:var(--text3); }
+.shop-tile.selected { border-color:var(--accent); background:#4f7fff18; }
+.shop-tile-name { font-size:12px; font-weight:600; color:var(--text); line-height:1.3; }
+.shop-tile-platform { font-size:10px; margin-top:2px; }
+.shop-tile.selected .shop-tile-name { color:var(--accent); }
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-nav-btn { background:var(--bg4); border:1px solid var(--border); border-radius:6px; color:var(--text2); width:26px; height:26px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+.cal-nav-btn:hover { color:var(--text); }
+.cal-month { font-size:13px; font-weight:600; color:var(--text); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-dow { text-align:center; font-size:10px; color:var(--text3); font-weight:600; padding:3px 0; }
+.cal-day { text-align:center; font-size:12px; font-weight:500; padding:5px 2px; border-radius:6px; cursor:pointer; transition:all .15s; position:relative; }
+.cal-day:hover { background:var(--bg4); }
+.cal-day.selected { background:var(--accent) !important; color:#fff !important; }
+.cal-day.today { font-weight:700; }
+.cal-day.empty { cursor:default; }
+.cal-day.past { color:var(--text3); cursor:default; }
+.cal-day[data-load="0"] { color:var(--text); }
+.cal-day[data-load="1"] { background:#4f7fff22; color:#7fa8ff; }
+.cal-day[data-load="2"] { background:#4f7fff44; color:#a0bcff; }
+.cal-day[data-load="3"] { background:#fbbf2433; color:#fbbf24; }
+.cal-day[data-load="4"] { background:#f8717133; color:#f87171; }
+.cal-legend { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.cal-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text3); }
+.cal-legend-dot { width:8px; height:8px; border-radius:2px; }
+.selected-date-label { font-size:12px; color:var(--accent); font-weight:600; margin-top:8px; min-height:18px; }
+</style>
 <div class="modal-overlay" id="taskModal">
-  <div class="modal">
+  <div class="task-modal-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2)">
+    <div class="task-modal-left">
     <div class="modal-title">Tao Task moi</div>
     <input type="hidden" id="taskId"/>
+    <input type="hidden" id="taskShop"/>
+    <input type="hidden" id="taskDate"/>
     <div class="form-group">
       <label class="form-label">Ten cong viec *</label>
       <input class="form-input" id="taskTitle" placeholder="Chup anh san pham, Live, Dang video..."/>
@@ -566,20 +654,6 @@ tr:hover td { background: var(--bg3); }
         <label class="form-label">Nguoi phu trach *</label>
         <select class="form-select" id="taskMember">
           <option value="">Chon nguoi...</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Shop</label>
-        <select class="form-select" id="taskShop">
-          <option value="">Chon shop...</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">San pham</label>
-        <select class="form-select" id="taskProduct">
-          <option value="">Chon san pham...</option>
         </select>
       </div>
       <div class="form-group">
@@ -598,16 +672,18 @@ tr:hover td { background: var(--bg3); }
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label class="form-label">San pham</label>
+        <select class="form-select" id="taskProduct">
+          <option value="">Chon san pham...</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label class="form-label">Do uu tien</label>
         <select class="form-select" id="taskPriority">
           <option value="high">Cao</option>
           <option value="medium" selected>Trung binh</option>
           <option value="low">Thap</option>
         </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ngay thuc hien</label>
-        <input class="form-input" id="taskDate" type="date"/>
       </div>
     </div>
     <div class="form-group">
@@ -625,6 +701,32 @@ tr:hover td { background: var(--bg3); }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('taskModal')">Huy</button>
       <button class="btn btn-primary" onclick="saveTask()">Tao Task</button>
+    </div>
+    </div><!-- end left panel -->
+
+    <!-- RIGHT PANEL -->
+    <div class="task-modal-right">
+      <div class="section-label">Chon Shop</div>
+      <div class="shop-grid" id="shopTileGrid"></div>
+      <div id="shopSelectedLabel" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:16px"></div>
+
+      <div style="height:1px;background:var(--border);margin:16px 0"></div>
+
+      <div class="section-label">Chon Ngay Thuc Hien</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
+        <span class="cal-month" id="calMonthLabel"></span>
+        <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--bg4);border:1px solid var(--border)"></div>Trong</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#4f7fff22"></div>1-2 task</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#4f7fff44"></div>3-4 task</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#fbbf2433"></div>5-7 task</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f8717133"></div>8+ task</div>
+      </div>
+      <div class="selected-date-label" id="selectedDateLabel">Chua chon ngay</div>
     </div>
   </div>
 </div>
@@ -819,6 +921,7 @@ async function loadAll() {
   renderMembers();
   updateMemberFilter();
   populateSelects();
+  initCalGrid4();
 }
 
 async function loadBranches() {
@@ -881,11 +984,7 @@ function populateSelects() {
   mSel.innerHTML = '<option value="">Chon nguoi...</option>';
   state.members.filter(m=>m.workspace!=='operations').forEach(m => { mSel.innerHTML += `<option value="${m.id}">${m.name}</option>`; });
 
-  // Shops for task
-  const sSel = document.getElementById('taskShop');
-  sSel.innerHTML = '<option value="">Chon shop...</option>';
-  state.shops.forEach(s => { sSel.innerHTML += `<option value="${s.id}">[${platformLabels[s.platform]}] ${s.name}</option>`; });
-
+  // Shops for task - now using tiles, skip select
   // Shops for complaint
   const csSel = document.getElementById('complaintShop');
   csSel.innerHTML = '<option value="">Chon shop...</option>';
@@ -900,6 +999,106 @@ function populateSelects() {
   const wSel = document.getElementById('worklogCategory');
   wSel.innerHTML = '<option value="">Chon loai...</option>';
   state.workCategories.forEach(c => { wSel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+
+  // Render shop tiles
+  renderShopTiles();
+}
+
+// SHOP TILES
+function renderShopTiles() {
+  const grid = document.getElementById('shopTileGrid');
+  if(!grid) return;
+  const selectedId = document.getElementById('taskShop').value;
+  if(state.shops.length === 0) {
+    grid.innerHTML = `<div style="grid-column:span 2;font-size:12px;color:var(--text3);text-align:center;padding:12px">Chua co shop nao. Them shop truoc.</div>`;
+    return;
+  }
+  grid.innerHTML = state.shops.map(s => {
+    const isSelected = s.id === selectedId;
+    return `<div class="shop-tile${isSelected?' selected':''}" onclick="selectShopTile('${s.id}')">
+      <div class="shop-tile-name">${s.name}</div>
+      <div class="shop-tile-platform"><span class="badge badge-${s.platform}" style="font-size:10px;padding:1px 5px">${platformLabels[s.platform]}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function selectShopTile(id) {
+  document.getElementById('taskShop').value = id;
+  const shop = getShop(id);
+  document.getElementById('shopSelectedLabel').textContent = shop.name ? `Da chon: ${shop.name}` : '';
+  renderShopTiles();
+}
+
+// CALENDAR
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+const viMonths = ['Thang 1','Thang 2','Thang 3','Thang 4','Thang 5','Thang 6','Thang 7','Thang 8','Thang 9','Thang 10','Thang 11','Thang 12'];
+const viDays = ['CN','T2','T3','T4','T5','T6','T7'];
+
+function renderCalendar() {
+  const label = document.getElementById('calMonthLabel');
+  const grid = document.getElementById('calGrid');
+  if(!label||!grid) return;
+
+  label.textContent = `${viMonths[calMonth]} ${calYear}`;
+
+  // Count tasks per day
+  const taskCountByDate = {};
+  state.tasks.forEach(t => {
+    if(t.plan_date) {
+      taskCountByDate[t.plan_date] = (taskCountByDate[t.plan_date]||0) + 1;
+    }
+  });
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const selectedDate = document.getElementById('taskDate').value;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  let html = viDays.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  // Empty cells before first day
+  for(let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+  for(let d=1; d<=daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const count = taskCountByDate[dateStr]||0;
+    const load = count===0?0:count<=2?1:count<=4?2:count<=7?3:4;
+    const isToday = dateStr===todayStr;
+    const isSelected = dateStr===selectedDate;
+    const isPast = new Date(dateStr) < new Date(todayStr);
+    let cls = 'cal-day';
+    if(isSelected) cls += ' selected';
+    if(isToday) cls += ' today';
+    if(isPast) cls += ' past';
+    const title = count>0?`${count} task`:'';
+    html += `<div class="${cls}" data-load="${load}" data-date="${dateStr}" title="${title}" onclick="${isPast?'':'calSelectDay(\''+dateStr+'\')'}">${d}${isToday?'<div style="width:4px;height:4px;background:var(--accent);border-radius:50%;margin:1px auto 0"></div>':''}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function calSelectDay(dateStr) {
+  document.getElementById('taskDate').value = dateStr;
+  const d = new Date(dateStr);
+  const viMonthShort = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+  const days = ['CN','T2','T3','T4','T5','T6','T7'];
+  document.getElementById('selectedDateLabel').textContent = `Da chon: ${days[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  renderCalendar();
+}
+
+function calPrev() {
+  calMonth--;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  renderCalendar();
+}
+
+function calNext() {
+  calMonth++;
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderCalendar();
 }
 
 // MEMBER FILTER
@@ -1205,6 +1404,7 @@ async function saveTask() {
   renderDaily();
   renderTasks();
   updateMemberFilter();
+  renderCalGrid4();
 }
 
 async function saveComplaint() {
@@ -1270,6 +1470,7 @@ async function cycleStatus(id) {
   await loadTasks();
   renderDaily();
   renderTasks();
+  renderCalGrid4();
 }
 
 // EDIT FUNCTIONS
@@ -1340,7 +1541,7 @@ async function deleteProduct(id) {
 async function deleteTask(id) {
   if(!confirm('Xac nhan xoa task nay?')) return;
   await sb.from('tasks').delete().eq('id',id);
-  await loadTasks(); renderDaily(); renderTasks(); updateMemberFilter();
+  await loadTasks(); renderDaily(); renderTasks(); updateMemberFilter(); renderCalGrid4();
 }
 
 // MODAL
@@ -1351,6 +1552,23 @@ function openModal(id, isEdit) {
     if(id==='productModal'){ document.getElementById('productId').value=''; document.getElementById('productModalTitle').textContent='Them San pham moi'; document.getElementById('productSku').value=''; document.getElementById('productName').value=''; document.getElementById('productCategory').value=''; document.getElementById('productPrice').value=''; }
     if(id==='complaintModal'){ document.getElementById('complaintId').value=''; document.getElementById('complaintModalTitle').textContent='Them Khieu nai'; document.getElementById('complaintShop').value=''; document.getElementById('complaintOrder').value=''; document.getElementById('complaintType').value='hang_loi'; document.getElementById('complaintStatus').value='received'; document.getElementById('complaintResult').value=''; document.getElementById('complaintAmount').value=''; document.getElementById('complaintNotes').value=''; }
     if(id==='memberModal'){ document.getElementById('memberId').value=''; document.getElementById('memberModalTitle').textContent='Them Thanh vien'; document.getElementById('memberName').value=''; document.getElementById('memberEmail').value=''; document.getElementById('memberRole').value='member'; document.getElementById('memberWorkspace').value='shop'; }
+    if(id==='taskModal'){
+      document.getElementById('taskId').value='';
+      document.getElementById('taskTitle').value='';
+      document.getElementById('taskShop').value='';
+      document.getElementById('taskDate').value='';
+      document.getElementById('taskLink').value='';
+      document.getElementById('taskFile').value='';
+      document.getElementById('taskDesc').value='';
+      document.getElementById('taskMember').value='';
+      document.getElementById('taskPriority').value='medium';
+      document.getElementById('shopSelectedLabel').textContent='';
+      document.getElementById('selectedDateLabel').textContent='Chua chon ngay';
+      calYear = new Date().getFullYear();
+      calMonth = new Date().getMonth();
+      renderShopTiles();
+      renderCalendar();
+    }
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1362,6 +1580,185 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   event.currentTarget.classList.add('active');
+}
+
+// 4 LICH CA NHAN
+const memberColors = { default:'var(--text2)' };
+const calState = [
+  { memberId: null, year: new Date().getFullYear(), month: new Date().getMonth() },
+  { memberId: null, year: new Date().getFullYear(), month: new Date().getMonth() },
+  { memberId: null, year: new Date().getFullYear(), month: new Date().getMonth() },
+  { memberId: null, year: new Date().getFullYear(), month: new Date().getMonth() }
+];
+let calFilterDate = null;
+let calFilterMemberId = null;
+
+function getMemberColor(id) {
+  const m = state.members.find(x=>x.id===id);
+  if(!m) return 'var(--text2)';
+  const idx = state.members.indexOf(m);
+  const colors = ['#4f7fff','#a78bfa','#fb923c','#34d399','#2dd4bf','#f87171','#fbbf24','#e879f9'];
+  return colors[idx % colors.length];
+}
+
+function initCalGrid4() {
+  const container = document.getElementById('calGrid4');
+  if(!container) return;
+  const shopMembers = state.members.filter(m=>m.workspace!=='operations');
+  for(let i=0;i<4;i++) {
+    if(!calState[i].memberId && shopMembers[i]) {
+      calState[i].memberId = shopMembers[i].id;
+    }
+  }
+  renderCalGrid4();
+}
+
+function renderCalGrid4() {
+  const container = document.getElementById('calGrid4');
+  if(!container) return;
+  const shopMembers = state.members.filter(m=>m.workspace!=='operations');
+
+  container.innerHTML = calState.map((cs, idx) => {
+    const member = state.members.find(m=>m.id===cs.memberId);
+    const color = cs.memberId ? getMemberColor(cs.memberId) : 'var(--text2)';
+    const viMonths2 = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+    const viDays2 = ['CN','T2','T3','T4','T5','T6','T7'];
+
+    // Count tasks per day for this member
+    const taskCountByDate = {};
+    if(cs.memberId) {
+      state.tasks.filter(t=>t.assigned_to===cs.memberId).forEach(t=>{
+        if(t.plan_date) taskCountByDate[t.plan_date] = (taskCountByDate[t.plan_date]||0)+1;
+      });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const firstDay = new Date(cs.year, cs.month, 1).getDay();
+    const daysInMonth = new Date(cs.year, cs.month+1, 0).getDate();
+
+    // Build calendar days HTML
+    let daysHtml = viDays2.map(d=>`<div class="pcal-dow">${d}</div>`).join('');
+    for(let i=0;i<firstDay;i++) daysHtml += `<div class="pcal-day pcal-empty"></div>`;
+
+    for(let d=1;d<=daysInMonth;d++) {
+      const dateStr = `${cs.year}-${String(cs.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const count = taskCountByDate[dateStr]||0;
+      const load = count===0?0:count<=2?1:count<=4?2:count<=7?3:4;
+      const isToday = dateStr===today;
+      const isPast = dateStr<today;
+      const isSelected = dateStr===calFilterDate && cs.memberId===calFilterMemberId;
+      let cls = 'pcal-day';
+      if(isToday) cls += ' pcal-today';
+      if(isPast && !isToday) cls += ' pcal-past';
+      if(isSelected) cls += ' pcal-selected';
+      const onclick = isPast && !isToday ? '' :
+        count>0 ? `onclick="calDayFilter('${dateStr}','${cs.memberId||''}',${idx})"` :
+        `onclick="calDayNew('${dateStr}','${cs.memberId||''}',${idx})"`;
+      const todayDot = isToday ? `<div class="pcal-today-dot"></div>` : '';
+      daysHtml += `<div class="${cls}" data-load="${load}" title="${count>0?count+' task':'Bam de giao viec'}" ${onclick}>${d}${todayDot}</div>`;
+    }
+
+    // Member select options
+    const memberOptions = shopMembers.map(m=>
+      `<option value="${m.id}" ${m.id===cs.memberId?'selected':''}>${m.name}</option>`
+    ).join('');
+
+    return `<div class="personal-cal">
+      <select class="pcal-select" onchange="calChangeMember(${idx},this.value)">
+        <option value="">Chon thanh vien...</option>
+        ${memberOptions}
+      </select>
+      <div class="pcal-header">
+        <span class="pcal-name" style="color:${color}">${member?member.name:'Chua chon'}</span>
+        <div class="pcal-nav">
+          <button class="pcal-nav-btn" onclick="calNav(${idx},-1)">&#8249;</button>
+          <span class="pcal-month-label">${viMonths2[cs.month]} ${cs.year}</span>
+          <button class="pcal-nav-btn" onclick="calNav(${idx},1)">&#8250;</button>
+        </div>
+      </div>
+      <div class="pcal-grid">${daysHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function calChangeMember(idx, memberId) {
+  calState[idx].memberId = memberId;
+  renderCalGrid4();
+}
+
+function calNav(idx, dir) {
+  calState[idx].month += dir;
+  if(calState[idx].month > 11) { calState[idx].month = 0; calState[idx].year++; }
+  if(calState[idx].month < 0) { calState[idx].month = 11; calState[idx].year--; }
+  renderCalGrid4();
+}
+
+function calDayFilter(dateStr, memberId, idx) {
+  calFilterDate = dateStr;
+  calFilterMemberId = memberId;
+  const member = state.members.find(m=>m.id===memberId);
+  const d = new Date(dateStr);
+  const viDayNames = ['CN','T2','T3','T4','T5','T6','T7'];
+  const label = `${viDayNames[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}${member?' — '+member.name:''}`;
+  const bar = document.getElementById('calFilterBar');
+  if(bar) { bar.style.display='flex'; document.getElementById('calFilterLabel').textContent='Dang loc: '+label; }
+  renderCalGrid4();
+  // Filter daily board
+  state.memberFilter = memberId||'all';
+  renderDailyForDate(dateStr, memberId);
+  // Scroll to top of daily board
+  document.getElementById('page-daily').scrollTo({top:0,behavior:'smooth'});
+  document.querySelector('.main').scrollTo({top:0,behavior:'smooth'});
+}
+
+function calDayNew(dateStr, memberId, idx) {
+  // Open task modal with date and member pre-filled
+  openModal('taskModal');
+  if(memberId) document.getElementById('taskMember').value = memberId;
+  document.getElementById('taskDate').value = dateStr;
+  const d = new Date(dateStr);
+  const viDayNames = ['CN','T2','T3','T4','T5','T6','T7'];
+  document.getElementById('selectedDateLabel').textContent =
+    `Da chon: ${viDayNames[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  renderShopTiles();
+  renderCalendar();
+}
+
+function renderDailyForDate(dateStr, memberId) {
+  let tasks = state.tasks.filter(t=>t.plan_date===dateStr);
+  if(memberId) tasks = tasks.filter(t=>t.assigned_to===memberId);
+  const cols = {todo:[],doing:[],done:[],blocked:[]};
+  tasks.forEach(t=>{ if(cols[t.status]) cols[t.status].push(t); });
+  document.getElementById('todayCount').textContent = tasks.length + ' task';
+  Object.keys(cols).forEach(s=>{
+    const col = document.getElementById('col-'+s);
+    const cnt = document.getElementById('cnt-'+s);
+    cnt.textContent = cols[s].length;
+    if(cols[s].length===0){ col.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Trong</div>`; return; }
+    col.innerHTML = cols[s].map(t=>{
+      const shop = getShop(t.shop_id);
+      const member = getMember(t.assigned_to);
+      const platBadge = shop.platform?`<span class="badge badge-${shop.platform}">${platformLabels[shop.platform]||''} ${shop.name||''}</span>`:'';
+      const prioBadge = `<span class="badge badge-${t.priority}">${priorityLabels[t.priority]||t.priority}</span>`;
+      const personBadge = member.name?`<span class="badge badge-person">${member.name}</span>`:'';
+      const linkBtn = t.product_link?`<a href="${t.product_link}" target="_blank" class="link-btn">Link SP ↗</a>`:'';
+      return `<div class="task-card" onclick="showTaskDetail('${t.id}')">
+        <div class="task-card-title">${t.title}</div>
+        <div class="task-card-meta">${personBadge}${platBadge}${prioBadge}${linkBtn}</div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function clearCalFilter() {
+  calFilterDate = null;
+  calFilterMemberId = null;
+  const bar = document.getElementById('calFilterBar');
+  if(bar) bar.style.display='none';
+  renderCalGrid4();
+  renderDaily();
 }
 
 // CONNECT SUPABASE (for setup screen)
