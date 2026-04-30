@@ -1284,7 +1284,7 @@ function editShop(id) {
   document.getElementById('shopBranch').value = s.branch_id||'';
   document.getElementById('shopStatus').value = s.status;
   document.getElementById('shopNotes').value = s.direction_notes||'';
-  openModal('shopModal');
+  openModal('shopModal', true);
 }
 
 function editProduct(id) {
@@ -1296,7 +1296,7 @@ function editProduct(id) {
   document.getElementById('productName').value = p.name;
   document.getElementById('productCategory').value = p.category||'';
   document.getElementById('productPrice').value = p.base_price||'';
-  openModal('productModal');
+  openModal('productModal', true);
 }
 
 function editComplaint(id) {
@@ -1311,7 +1311,7 @@ function editComplaint(id) {
   document.getElementById('complaintResult').value = c.result||'';
   document.getElementById('complaintAmount').value = c.amount||'';
   document.getElementById('complaintNotes').value = c.evidence_notes||'';
-  openModal('complaintModal');
+  openModal('complaintModal', true);
 }
 
 function editMember(id) {
@@ -1323,7 +1323,7 @@ function editMember(id) {
   document.getElementById('memberEmail').value = m.email||'';
   document.getElementById('memberRole').value = m.role;
   document.getElementById('memberWorkspace').value = m.workspace;
-  openModal('memberModal');
+  openModal('memberModal', true);
 }
 
 // DELETE
@@ -1344,12 +1344,14 @@ async function deleteTask(id) {
 }
 
 // MODAL
-function openModal(id) {
+function openModal(id, isEdit) {
   document.getElementById(id).classList.add('open');
-  if(id==='shopModal'){ document.getElementById('shopId').value=''; document.getElementById('shopModalTitle').textContent='Them Shop moi'; }
-  if(id==='productModal'){ document.getElementById('productId').value=''; document.getElementById('productModalTitle').textContent='Them San pham moi'; }
-  if(id==='complaintModal'){ document.getElementById('complaintId').value=''; document.getElementById('complaintModalTitle').textContent='Them Khieu nai'; }
-  if(id==='memberModal'){ document.getElementById('memberId').value=''; document.getElementById('memberModalTitle').textContent='Them Thanh vien'; }
+  if(!isEdit) {
+    if(id==='shopModal'){ document.getElementById('shopId').value=''; document.getElementById('shopModalTitle').textContent='Them Shop moi'; document.getElementById('shopName').value=''; document.getElementById('shopUrl').value=''; document.getElementById('shopNotes').value=''; document.getElementById('shopPlatform').value='shopee'; document.getElementById('shopStatus').value='active'; document.getElementById('shopBranch').value=''; }
+    if(id==='productModal'){ document.getElementById('productId').value=''; document.getElementById('productModalTitle').textContent='Them San pham moi'; document.getElementById('productSku').value=''; document.getElementById('productName').value=''; document.getElementById('productCategory').value=''; document.getElementById('productPrice').value=''; }
+    if(id==='complaintModal'){ document.getElementById('complaintId').value=''; document.getElementById('complaintModalTitle').textContent='Them Khieu nai'; document.getElementById('complaintShop').value=''; document.getElementById('complaintOrder').value=''; document.getElementById('complaintType').value='hang_loi'; document.getElementById('complaintStatus').value='received'; document.getElementById('complaintResult').value=''; document.getElementById('complaintAmount').value=''; document.getElementById('complaintNotes').value=''; }
+    if(id==='memberModal'){ document.getElementById('memberId').value=''; document.getElementById('memberModalTitle').textContent='Them Thanh vien'; document.getElementById('memberName').value=''; document.getElementById('memberEmail').value=''; document.getElementById('memberRole').value='member'; document.getElementById('memberWorkspace').value='shop'; }
+  }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
