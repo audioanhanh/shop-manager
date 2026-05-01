@@ -718,8 +718,8 @@ tr:hover td { background: var(--bg3); }
       <input class="form-input" id="taskFile" placeholder="\DS415+\Shop\Anh san pham\..."/>
     </div>
 
-    <!-- O LINK SHOPEE - hien khi chon shop Shopee hoac dan link -->
-    <div class="form-group" id="shopeeUrlGroup" style="display:none">
+    <!-- O LINK SHOPEE - luon hien san -->
+    <div class="form-group" id="shopeeUrlGroup">
       <label class="form-label">Link san pham Shopee</label>
       <input class="form-input" id="taskLink" placeholder="https://shopee.vn/..." oninput="onShopeeUrlInput(this.value)"/>
       <div id="shopeeUrlInfo" style="font-size:11px;margin-top:5px;display:none">
@@ -1649,7 +1649,7 @@ function openModal(id, isEdit) {
       document.getElementById('taskPriority').value='medium';
       document.getElementById('shopSelectedLabel').textContent='';
       document.getElementById('selectedDateLabel').textContent='Chua chon ngay';
-      document.getElementById('shopeeUrlGroup').style.display='none';
+      document.getElementById('shopeeUrlGroup').style.display='block';
       document.getElementById('tiktokIdGroup').style.display='none';
       document.getElementById('shopeeUrlInfo').style.display='none';
       document.getElementById('tiktokIdInfo').style.display='none';
@@ -1787,15 +1787,11 @@ function updateTaskUrlFields(platform) {
   const shopeeGroup = document.getElementById('shopeeUrlGroup');
   const tiktokGroup = document.getElementById('tiktokIdGroup');
   if(!shopeeGroup || !tiktokGroup) return;
-  if(platform==='shopee') {
-    shopeeGroup.style.display='block';
-    tiktokGroup.style.display='none';
-  } else if(platform==='tiktok') {
+  if(platform==='tiktok') {
     shopeeGroup.style.display='none';
     tiktokGroup.style.display='block';
   } else {
-    // Neu chua chon shop nao thi hien ca 2 an
-    shopeeGroup.style.display='none';
+    shopeeGroup.style.display='block';
     tiktokGroup.style.display='none';
   }
 }
