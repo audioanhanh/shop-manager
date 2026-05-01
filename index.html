@@ -584,6 +584,12 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Link san pham bat ky cua shop nay (de nhan dien tu dong)</label>
+      <input class="form-input" id="shopSampleUrl" placeholder="Dan link san pham Shopee bat ky cua shop nay..." oninput="extractShopId(this.value)"/>
+      <div id="shopIdExtracted" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+      <input type="hidden" id="shopPlatformId"/>
+    </div>
+    <div class="form-group">
       <label class="form-label">Ghi chu dinh huong phat trien</label>
       <textarea class="form-textarea" id="shopNotes" placeholder="Dinh huong noi dung, tu khoa uu tien, phan khuc khach hang..."></textarea>
     </div>
@@ -708,13 +714,30 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Link san pham (Shopee/TikTok)</label>
-      <input class="form-input" id="taskLink" placeholder="https://shopee.vn/..."/>
-    </div>
-    <div class="form-group">
       <label class="form-label">Duong dan file (DS415+)</label>
       <input class="form-input" id="taskFile" placeholder="\DS415+\Shop\Anh san pham\..."/>
     </div>
+
+    <!-- O LINK SHOPEE - hien khi chon shop Shopee hoac dan link -->
+    <div class="form-group" id="shopeeUrlGroup" style="display:none">
+      <label class="form-label">Link san pham Shopee</label>
+      <input class="form-input" id="taskLink" placeholder="https://shopee.vn/..." oninput="onShopeeUrlInput(this.value)"/>
+      <div id="shopeeUrlInfo" style="font-size:11px;margin-top:5px;display:none">
+        <span id="shopeeUrlShort" style="color:var(--text2)"></span>
+        <span id="taskWarning" style="margin-left:8px;font-weight:700"></span>
+      </div>
+    </div>
+
+    <!-- O ITEM ID TIKTOK - hien khi chon shop TikTok -->
+    <div class="form-group" id="tiktokIdGroup" style="display:none">
+      <label class="form-label">Item ID TikTok (tu Seller Center)</label>
+      <input class="form-input" id="taskTiktokId" placeholder="1729827364893729461" oninput="onTiktokIdInput(this.value)"/>
+      <div id="tiktokIdInfo" style="font-size:11px;margin-top:5px;display:none">
+        <span id="tiktokIdShort" style="color:var(--text2)"></span>
+        <span id="tiktokWarning" style="margin-left:8px;font-weight:700"></span>
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">Ghi chu</label>
       <textarea class="form-textarea" id="taskDesc" placeholder="Mo ta them ve cong viec..."></textarea>
@@ -1035,19 +1058,30 @@ function renderShopTiles() {
     grid.innerHTML = `<div style="grid-column:span 2;font-size:12px;color:var(--text3);text-align:center;padding:12px">Chua co shop nao. Them shop truoc.</div>`;
     return;
   }
-  grid.innerHTML = state.shops.map(s => {
+  const shopeeShops = state.shops.filter(s=>s.platform==='shopee');
+  const tiktokShops = state.shops.filter(s=>s.platform==='tiktok');
+
+  const renderGroup = (shops, platform) => shops.map(s => {
     const isSelected = s.id === selectedId;
-    return `<div class="shop-tile${isSelected?' selected':''}" onclick="selectShopTile('${s.id}')">
-      <div class="shop-tile-name">${s.name}</div>
-      <div class="shop-tile-platform"><span class="badge badge-${s.platform}" style="font-size:10px;padding:1px 5px">${platformLabels[s.platform]}</span></div>
+    const borderColor = isSelected ? (platform==='shopee'?'#fb923c':'#2dd4bf') : 'var(--border)';
+    const bgColor = isSelected ? (platform==='shopee'?'#f8703018':'#2dd4bf18') : 'var(--bg4)';
+    const nameColor = isSelected ? (platform==='shopee'?'#fb923c':'#2dd4bf') : 'var(--text)';
+    return `<div class="shop-tile" style="border-color:${borderColor};background:${bgColor}" onclick="selectShopTile('${s.id}')">
+      <div class="shop-tile-name" style="color:${nameColor}">${s.name}</div>
     </div>`;
   }).join('');
+
+  grid.innerHTML = `
+    ${shopeeShops.length>0?`<div style="grid-column:span 2;font-size:10px;font-weight:600;color:#fb923c;text-transform:uppercase;letter-spacing:.06em;padding:4px 0 2px;border-bottom:1px solid #f8703022;margin-bottom:2px">Shopee</div>${renderGroup(shopeeShops,'shopee')}`:''}
+    ${tiktokShops.length>0?`<div style="grid-column:span 2;font-size:10px;font-weight:600;color:#2dd4bf;text-transform:uppercase;letter-spacing:.06em;padding:4px 0 2px;border-bottom:1px solid #2dd4bf22;margin-bottom:2px;margin-top:6px">TikTok Shop</div>${renderGroup(tiktokShops,'tiktok')}`:''}
+  `;
 }
 
 function selectShopTile(id) {
   document.getElementById('taskShop').value = id;
   const shop = getShop(id);
   document.getElementById('shopSelectedLabel').textContent = shop.name ? `Da chon: ${shop.name}` : '';
+  updateTaskUrlFields(shop.platform);
   renderShopTiles();
 }
 
@@ -1176,8 +1210,20 @@ function renderDaily() {
       const personBadge = member.name?`<span class="badge badge-person">${member.name}</span>`:'';
       const linkBtn = t.product_link?`<a href="${t.product_link}" target="_blank" class="link-btn">Link SP ↗</a>`:'';
       const dateBadge = isMultiDay&&t.plan_date?`<span style="font-size:10px;color:var(--text3)">${fmtDateShort(t.plan_date)}</span>`:'';
-      return `<div class="task-card" onclick="showTaskDetail('${t.id}')">
-        <div class="task-card-title">${t.title}</div>
+      // WARNING BADGE
+      let warnBadge = '';
+      if(t.product_link) {
+        const parsed = parseShopeeUrl(t.product_link);
+        if(parsed) {
+          const cnt = state.tasks.filter(x=>x.id!==t.id&&x.product_link&&parseShopeeUrl(x.product_link)?.itemId===parsed.itemId).length;
+          if(cnt>0) { const wc=cnt<=1?'var(--amber)':cnt<=2?'#fb923c':'var(--red)'; warnBadge=`<span style="color:${wc};font-weight:700;font-size:11px">!${cnt}</span>`; }
+        }
+      }
+      if(t.tiktok_item_id) {
+        const cnt = state.tasks.filter(x=>x.id!==t.id&&x.tiktok_item_id===t.tiktok_item_id).length;
+        if(cnt>0) { const wc=cnt<=1?'var(--amber)':cnt<=2?'#fb923c':'var(--red)'; warnBadge=`<span style="color:${wc};font-weight:700;font-size:11px">!${cnt}</span>`; }
+      }      return `<div class="task-card" onclick="showTaskDetail('${t.id}')">
+        <div class="task-card-title">${t.title}${warnBadge?` ${warnBadge}`:''}</div>
         <div class="task-card-meta">${personBadge}${platBadge}${prioBadge}${dateBadge}${linkBtn}</div>
       </div>`;
     }).join('');
@@ -1384,7 +1430,8 @@ async function saveShop() {
     shop_url: document.getElementById('shopUrl').value.trim()||null,
     branch_id: document.getElementById('shopBranch').value||null,
     status: document.getElementById('shopStatus').value,
-    direction_notes: document.getElementById('shopNotes').value.trim()||null
+    direction_notes: document.getElementById('shopNotes').value.trim()||null,
+    platform_id: document.getElementById('shopPlatformId').value||null
   };
   if(!data.name) return alert('Vui long nhap ten shop');
   if(id) { await sb.from('shops').update(data).eq('id',id); }
@@ -1413,15 +1460,18 @@ async function saveProduct() {
 }
 
 async function saveTask() {
+  const shopId = document.getElementById('taskShop').value||null;
+  const shop = getShop(shopId);
   const data = {
     title: document.getElementById('taskTitle').value.trim(),
     assigned_to: document.getElementById('taskMember').value||null,
-    shop_id: document.getElementById('taskShop').value||null,
+    shop_id: shopId,
     product_id: document.getElementById('taskProduct').value||null,
     task_type: document.getElementById('taskType').value,
     priority: document.getElementById('taskPriority').value,
     plan_date: document.getElementById('taskDate').value||null,
-    product_link: document.getElementById('taskLink').value.trim()||null,
+    product_link: shop.platform==='shopee'?(document.getElementById('taskLink')?.value?.trim()||null):null,
+    tiktok_item_id: shop.platform==='tiktok'?(document.getElementById('taskTiktokId')?.value?.trim()||null):null,
     file_path: document.getElementById('taskFile').value.trim()||null,
     description: document.getElementById('taskDesc').value.trim()||null,
     status: 'todo'
@@ -1430,7 +1480,8 @@ async function saveTask() {
   await sb.from('tasks').insert(data);
   closeModal('taskModal');
   document.getElementById('taskTitle').value='';
-  document.getElementById('taskLink').value='';
+  if(document.getElementById('taskLink')) document.getElementById('taskLink').value='';
+  if(document.getElementById('taskTiktokId')) document.getElementById('taskTiktokId').value='';
   document.getElementById('taskFile').value='';
   document.getElementById('taskDesc').value='';
   await loadTasks();
@@ -1590,13 +1641,18 @@ function openModal(id, isEdit) {
       document.getElementById('taskTitle').value='';
       document.getElementById('taskShop').value='';
       document.getElementById('taskDate').value='';
-      document.getElementById('taskLink').value='';
+      if(document.getElementById('taskLink')) document.getElementById('taskLink').value='';
+      if(document.getElementById('taskTiktokId')) document.getElementById('taskTiktokId').value='';
       document.getElementById('taskFile').value='';
       document.getElementById('taskDesc').value='';
       document.getElementById('taskMember').value='';
       document.getElementById('taskPriority').value='medium';
       document.getElementById('shopSelectedLabel').textContent='';
       document.getElementById('selectedDateLabel').textContent='Chua chon ngay';
+      document.getElementById('shopeeUrlGroup').style.display='none';
+      document.getElementById('tiktokIdGroup').style.display='none';
+      document.getElementById('shopeeUrlInfo').style.display='none';
+      document.getElementById('tiktokIdInfo').style.display='none';
       calYear = new Date().getFullYear();
       calMonth = new Date().getMonth();
       renderShopTiles();
@@ -1613,6 +1669,135 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   event.currentTarget.classList.add('active');
+}
+
+// PARSE SHOPEE URL
+function parseShopeeUrl(url) {
+  try {
+    const match = url.match(/i\.(\d+)\.(\d+)/);
+    if(match) return { shopId: match[1], itemId: match[2] };
+  } catch(e){}
+  return null;
+}
+
+// PARSE TIKTOK SHOP URL (lay ten shop)
+function parseTiktokShopUrl(url) {
+  try {
+    const match = url.match(/@([\w.]+)/);
+    if(match) return match[1];
+  } catch(e){}
+  return null;
+}
+
+// EXTRACT SHOP ID FROM SAMPLE URL (trong form shop)
+function extractShopId(url) {
+  const el = document.getElementById('shopIdExtracted');
+  const platform = document.getElementById('shopPlatform').value;
+  if(!url || !el) return;
+  if(platform === 'shopee') {
+    const parsed = parseShopeeUrl(url);
+    if(parsed) {
+      document.getElementById('shopPlatformId').value = parsed.shopId;
+      el.textContent = `Da doc Shop ID: ${parsed.shopId}`;
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = 'Khong doc duoc Shop ID — kiem tra lai link';
+      el.style.color = 'var(--red)';
+    }
+  } else {
+    const shopName = parseTiktokShopUrl(url);
+    if(shopName) {
+      document.getElementById('shopPlatformId').value = '@'+shopName;
+      el.textContent = `Da doc Shop: @${shopName}`;
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = 'Khong doc duoc ten shop TikTok';
+      el.style.color = 'var(--red)';
+    }
+  }
+}
+
+// COUNT ITEM USAGE
+function countItemUsage(itemId, platform) {
+  if(!itemId) return 0;
+  const field = platform==='shopee' ? 'product_link' : 'tiktok_item_id';
+  return state.tasks.filter(t => {
+    if(platform==='shopee' && t.product_link) {
+      const parsed = parseShopeeUrl(t.product_link);
+      return parsed && parsed.itemId === itemId;
+    }
+    if(platform==='tiktok' && t.tiktok_item_id) {
+      return t.tiktok_item_id === itemId;
+    }
+    return false;
+  }).length;
+}
+
+function getWarningHtml(count, excludeCurrent) {
+  const n = excludeCurrent ? count - 1 : count;
+  if(n <= 0) return '';
+  const color = n===1?'var(--amber)':n===2?'#fb923c':'var(--red)';
+  return `<span style="color:${color};font-weight:700">!${n} lan xuat hien truoc</span>`;
+}
+
+// KHI DAN LINK SHOPEE TRONG TASK
+function onShopeeUrlInput(url) {
+  const infoEl = document.getElementById('shopeeUrlInfo');
+  const shortEl = document.getElementById('shopeeUrlShort');
+  const warnEl = document.getElementById('taskWarning');
+  if(!url) { infoEl.style.display='none'; return; }
+  const parsed = parseShopeeUrl(url);
+  if(parsed) {
+    infoEl.style.display='block';
+    shortEl.textContent = `Shop: ${parsed.shopId} | SP: ${parsed.itemId}`;
+    const count = countItemUsage(parsed.itemId, 'shopee');
+    warnEl.innerHTML = getWarningHtml(count, false);
+    // Tu dong khop shop tile
+    autoMatchShopTile(parsed.shopId, 'shopee');
+  } else {
+    infoEl.style.display='none';
+  }
+}
+
+// KHI NHAP ITEM ID TIKTOK TRONG TASK
+function onTiktokIdInput(itemId) {
+  const infoEl = document.getElementById('tiktokIdInfo');
+  const shortEl = document.getElementById('tiktokIdShort');
+  const warnEl = document.getElementById('tiktokWarning');
+  if(!itemId) { infoEl.style.display='none'; return; }
+  infoEl.style.display='block';
+  shortEl.textContent = `Item ID: ${itemId}`;
+  const count = countItemUsage(itemId, 'tiktok');
+  warnEl.innerHTML = getWarningHtml(count, false);
+}
+
+// TU DONG KHOP SHOP TILE THEO SHOP ID SHOPEE
+function autoMatchShopTile(shopId, platform) {
+  const matched = state.shops.find(s=>s.platform===platform && s.platform_id===shopId);
+  if(matched) {
+    document.getElementById('taskShop').value = matched.id;
+    document.getElementById('shopSelectedLabel').textContent = `Da chon: ${matched.name}`;
+    updateTaskUrlFields(matched.platform);
+    renderShopTiles();
+  }
+}
+
+// HIEN O LINK DUNG THEO PLATFORM CUA SHOP DUOC CHON
+function updateTaskUrlFields(platform) {
+  const shopeeGroup = document.getElementById('shopeeUrlGroup');
+  const tiktokGroup = document.getElementById('tiktokIdGroup');
+  if(!shopeeGroup || !tiktokGroup) return;
+  if(platform==='shopee') {
+    shopeeGroup.style.display='block';
+    tiktokGroup.style.display='none';
+  } else if(platform==='tiktok') {
+    shopeeGroup.style.display='none';
+    tiktokGroup.style.display='block';
+  } else {
+    // Neu chua chon shop nao thi hien ca 2 an
+    shopeeGroup.style.display='none';
+    tiktokGroup.style.display='none';
+  }
 }
 
 // TIME VIEW
