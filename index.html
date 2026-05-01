@@ -168,6 +168,17 @@ tr:hover td { background: var(--bg3); }
 /* LOADING */
 .loading { display: flex; align-items: center; gap: 8px; color: var(--text2); font-size: 13px; padding: 24px; }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+.time-nav-btn{padding:5px 12px;border-radius:6px;border:none;background:transparent;color:var(--text3);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.time-nav-btn:hover{color:var(--text2)}
+.time-nav-btn.active{background:var(--accent);color:#fff}
+.progress-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px}
+.progress-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.progress-name{font-size:12px;font-weight:600}
+.progress-num{font-size:11px;color:var(--text2)}
+.progress-pct{font-size:11px;font-weight:600}
+.progress-track{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+
 /* 4 LICH CA NHAN */
 .personal-cal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
 .pcal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -316,16 +327,26 @@ tr:hover td { background: var(--bg3); }
         </div>
         <div class="morning-count" id="todayCount">0 task hom nay</div>
       </div>
-      <div class="page-header">
-        <div>
-          <div class="page-title">Daily Board</div>
-          <div class="page-sub">Theo doi cong viec hom nay cua ca nhom</div>
+
+      <!-- THANH TIEN DO 4 NGUOI -->
+      <div id="progressBar4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:6px">
+          <!-- NUT DIEU HUONG THOI GIAN -->
+          <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px">
+            <button class="time-nav-btn" id="tnb-prev" onclick="setTimeView('prev')">Tuan truoc</button>
+            <button class="time-nav-btn active" id="tnb-today" onclick="setTimeView('today')">Hom nay</button>
+            <button class="time-nav-btn" id="tnb-tomorrow" onclick="setTimeView('tomorrow')">Ngay mai</button>
+            <button class="time-nav-btn" id="tnb-week" onclick="setTimeView('week')">Tuan nay</button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('taskModal')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <button class="btn btn-primary btn-sm" onclick="openModal('taskModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tao Task
         </button>
       </div>
+
       <div class="member-filter" id="memberFilter">
         <div class="member-chip active" data-member="all" onclick="filterMember('all',this)">Tat ca</div>
       </div>
@@ -922,6 +943,7 @@ async function loadAll() {
   updateMemberFilter();
   populateSelects();
   initCalGrid4();
+  renderProgress4();
 }
 
 async function loadBranches() {
@@ -1120,37 +1142,48 @@ function filterMember(id, el) {
 }
 
 // RENDER DAILY
+function fmtDateShort(dateStr) {
+  if(!dateStr) return '';
+  const d = new Date(dateStr);
+  const days = ['CN','T2','T3','T4','T5','T6','T7'];
+  return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+}
+
 function renderDaily() {
-  const today = new Date().toISOString().split('T')[0];
-  let tasks = state.tasks.filter(t=>t.plan_date===today || (!t.plan_date && t.status!=='done'));
+  const {dates, label} = getDateRange(currentTimeView);
+  const isMultiDay = dates.length > 1;
+  let tasks = state.tasks.filter(t=>dates.includes(t.plan_date));
   if(state.memberFilter !== 'all') tasks = tasks.filter(t=>t.assigned_to===state.memberFilter);
 
+  const countLabel = currentTimeView==='today'?`${tasks.length} task hom nay`:
+    currentTimeView==='tomorrow'?`${tasks.length} task ngay mai`:
+    `${tasks.length} task ${label.toLowerCase()}`;
+  document.getElementById('todayCount').textContent = countLabel;
+
   const cols = { todo:[], doing:[], done:[], blocked:[] };
-  tasks.forEach(t => { if(cols[t.status]) cols[t.status].push(t); });
+  tasks.forEach(t=>{ if(cols[t.status]) cols[t.status].push(t); });
 
-  document.getElementById('todayCount').textContent = tasks.length + ' task hom nay';
-
-  Object.keys(cols).forEach(s => {
+  Object.keys(cols).forEach(s=>{
     const col = document.getElementById('col-'+s);
     const cnt = document.getElementById('cnt-'+s);
     cnt.textContent = cols[s].length;
-    if(cols[s].length === 0) {
-      col.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Trong</div>`;
-      return;
-    }
-    col.innerHTML = cols[s].map(t => {
+    if(cols[s].length===0){ col.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Trong</div>`; return; }
+    col.innerHTML = cols[s].map(t=>{
       const shop = getShop(t.shop_id);
       const member = getMember(t.assigned_to);
-      const platBadge = shop.platform ? `<span class="badge badge-${shop.platform}">${platformLabels[shop.platform]||''} ${shop.name||''}</span>` : '';
+      const platBadge = shop.platform?`<span class="badge badge-${shop.platform}">${platformLabels[shop.platform]||''} ${shop.name||''}</span>`:'';
       const prioBadge = `<span class="badge badge-${t.priority}">${priorityLabels[t.priority]||t.priority}</span>`;
-      const personBadge = member.name ? `<span class="badge badge-person">${member.name}</span>` : '';
-      const linkBtn = t.product_link ? `<a href="${t.product_link}" target="_blank" class="link-btn">Link SP ↗</a>` : '';
+      const personBadge = member.name?`<span class="badge badge-person">${member.name}</span>`:'';
+      const linkBtn = t.product_link?`<a href="${t.product_link}" target="_blank" class="link-btn">Link SP ↗</a>`:'';
+      const dateBadge = isMultiDay&&t.plan_date?`<span style="font-size:10px;color:var(--text3)">${fmtDateShort(t.plan_date)}</span>`:'';
       return `<div class="task-card" onclick="showTaskDetail('${t.id}')">
         <div class="task-card-title">${t.title}</div>
-        <div class="task-card-meta">${personBadge}${platBadge}${prioBadge}${linkBtn}</div>
+        <div class="task-card-meta">${personBadge}${platBadge}${prioBadge}${dateBadge}${linkBtn}</div>
       </div>`;
     }).join('');
   });
+
+  renderProgress4();
 }
 
 // RENDER SHOPS
@@ -1580,6 +1613,71 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   event.currentTarget.classList.add('active');
+}
+
+// TIME VIEW
+let currentTimeView = 'today';
+
+function getDateRange(view) {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  if(view==='today') return {dates:[todayStr],label:'Hom nay'};
+  if(view==='tomorrow') {
+    const tom=new Date(today); tom.setDate(tom.getDate()+1);
+    return {dates:[tom.toISOString().split('T')[0]],label:'Ngay mai'};
+  }
+  if(view==='week') {
+    const day=today.getDay();
+    const mon=new Date(today); mon.setDate(today.getDate()-(day===0?6:day-1));
+    const dates=[];
+    for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d.toISOString().split('T')[0]);}
+    return {dates,label:'Tuan nay'};
+  }
+  if(view==='prev') {
+    const day=today.getDay();
+    const mon=new Date(today); mon.setDate(today.getDate()-(day===0?6:day-1)-7);
+    const dates=[];
+    for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);dates.push(d.toISOString().split('T')[0]);}
+    return {dates,label:'Tuan truoc'};
+  }
+  return {dates:[todayStr],label:'Hom nay'};
+}
+
+function setTimeView(view) {
+  currentTimeView=view;
+  document.querySelectorAll('.time-nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('tnb-'+view);
+  if(btn) btn.classList.add('active');
+  renderDaily();
+  renderProgress4();
+}
+
+// PROGRESS BAR 4 NGUOI
+function renderProgress4() {
+  const container=document.getElementById('progressBar4');
+  if(!container) return;
+  const {dates}=getDateRange(currentTimeView);
+  const shopMembers=state.members.filter(m=>m.workspace!=='operations').slice(0,4);
+  if(shopMembers.length===0){container.innerHTML='';return;}
+  const memberColors2=['#4f7fff','#a78bfa','#fb923c','#34d399','#2dd4bf','#f87171','#fbbf24'];
+  container.innerHTML=shopMembers.map((m,i)=>{
+    const memberTasks=state.tasks.filter(t=>t.assigned_to===m.id&&dates.includes(t.plan_date));
+    const total=memberTasks.length;
+    const done=memberTasks.filter(t=>t.status==='done').length;
+    const pct=total>0?Math.round(done/total*100):0;
+    const color=memberColors2[i%memberColors2.length];
+    return `<div class="progress-card">
+      <div class="progress-card-top">
+        <span class="progress-name" style="color:${color}">${m.name}</span>
+        <span class="progress-num">${done}/${total} task</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="progress-track" style="flex:1"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="progress-pct" style="color:${color}">${pct}%</span>
+      </div>
+      ${total===0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">Chua co task — <span style="color:${color};cursor:pointer" onclick="openModal('taskModal');document.getElementById('taskMember').value='${m.id}'">Giao viec +</span></div>`:''}
+    </div>`;
+  }).join('');
 }
 
 // 4 LICH CA NHAN
