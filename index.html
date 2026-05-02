@@ -1553,13 +1553,7 @@ Tao tieu de cho TUNG shop theo thu tu tu 1 den ${state.shops.length}.
 Format CHINH XAC, moi shop 1 dong:
 TenShop|Tieu de san pham|tu khoa 1,tu khoa 2,tu khoa 3
 
-LUU Y QUAN TRONG:
-- Phai co du CHINH XAC ${state.shops.length} dong
-- Moi dong bat dau bang ten shop chinh xac nhu trong danh sach
-- KHONG duoc lap lai bat ky shop nao
-- KHONG viet gi them ngoai danh sach
-
-Bay gio liet ke du ${state.shops.length} shop:`;
+LUU Y: Phai co du CHINH XAC ${state.shops.length} dong, KHONG duoc lap lai, KHONG viet gi them.`;
 
 
 
@@ -1580,10 +1574,6 @@ Bay gio liet ke du ${state.shops.length} shop:`;
     const data = await response.json();
     const text = data.content?.[0]?.text || '';
 
-    // Debug: log ra de kiem tra
-    console.log('Claude response status:', response.status);
-    console.log('Claude response data:', JSON.stringify(data).slice(0, 500));
-
     // Kiem tra loi tu Anthropic
     if(data.error) {
       throw new Error('Anthropic API loi: ' + (data.error.message || JSON.stringify(data.error)));
@@ -1599,8 +1589,7 @@ Bay gio liet ke du ${state.shops.length} shop:`;
     let matched = 0;
     const normalizedText = text.replace(/\\n/g, '\n');
     const lines = normalizedText.split('\n').filter(l=>l.trim()&&l.includes('|'));
-    console.log('So dong parse duoc:', lines.length, '| Noi dung:', lines.slice(0,3).join(' / '));
-    console.log('Tat ca ten shop Claude tra ve:', lines.map(l=>l.split('|')[0]).join(', '));
+    console.log('So dong parse duoc:', lines.length);
     
     if(lines.length === 0) {
       throw new Error('Claude khong tra ve dung dinh dang. Raw: ' + text.slice(0,200));
@@ -1626,7 +1615,6 @@ Bay gio liet ke du ${state.shops.length} shop:`;
       if(title) {
         const titleEl = document.getElementById(`pt-title-${shop.id}`);
         const kwEl = document.getElementById(`pt-kw-${shop.id}`);
-        console.log('Shop:', shop.name, '| Element:', titleEl ? 'CO' : 'KHONG CO', '| ID:', shop.id);
         if(titleEl) {
           titleEl.value = title;
           titleEl.style.borderColor = 'var(--accent)';
