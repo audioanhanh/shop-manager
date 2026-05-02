@@ -1535,8 +1535,8 @@ HL-AnhAnhAudio|Mang Treble 72.2mm Titan Day Dong|mang treble titan,72.2mm,day do
 
 CHI TRA VE DANH SACH, KHONG CO GI THEM.`;
 
-  const shopList = state.shops.map(s=>
-    `${s.name}|${s.platform==='shopee'?'Shopee':'TikTok'}`
+  const shopList = state.shops.map((s, i)=>
+    `${i+1}. ${s.name} (${s.platform==='shopee'?'Shopee':'TikTok'})`
   ).join('\n');
 
   const userPrompt = `San pham: ${product.name}
@@ -1544,19 +1544,24 @@ SKU: ${product.sku}
 Mo ta: ${product.description}
 ${product.category?'Danh muc: '+product.category:''}
 
-DANH SACH ${state.shops.length} SHOP (dung chinh xac ten nay):
+DANH SACH ${state.shops.length} SHOP (bat buoc tao du het, khong duoc bo sot, khong duoc lap lai):
 ${shopList}
 
 ${existingTitles?'Tieu de da co (tranh trung tu khoa): '+existingTitles:''}
 
-Tao tieu de cho tung shop. Tra ve CHINH XAC theo format sau, moi shop 1 dong:
+Tao tieu de cho TUNG shop theo thu tu tu 1 den ${state.shops.length}.
+Format CHINH XAC, moi shop 1 dong:
 TenShop|Tieu de san pham|tu khoa 1,tu khoa 2,tu khoa 3
 
-Vi du:
-HL-ADAudio|La Tron 72mm Titan Thay The Loa Treble|la tron titan,thay the loa treble,72mm
-HL-AnhAnhAudio|Mang Treble 72.2mm Titan Day Dong|mang treble titan,72.2mm ccaw
+LUU Y QUAN TRONG:
+- Phai co du CHINH XAC ${state.shops.length} dong
+- Moi dong bat dau bang ten shop chinh xac nhu trong danh sach
+- KHONG duoc lap lai bat ky shop nao
+- KHONG viet gi them ngoai danh sach
 
-KHONG viet gi them, KHONG giai thich, CHI tra ve danh sach ${state.shops.length} dong.`;
+Bay gio liet ke du ${state.shops.length} shop:`;
+
+
 
   try {
     progressText.textContent = 'Claude dang tao tieu de cho ' + state.shops.length + ' shop...';
