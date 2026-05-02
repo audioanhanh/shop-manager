@@ -1535,14 +1535,12 @@ CACH PHAN BO TU KHOA:
 - Shop Shopee: nhom theo goc do san pham (chat lieu, phong cach, dip mac, doi tuong, tinh nang)
 - Shop TikTok: nhom theo trend, cam xuc, nhu cau cu the
 
-TRA VE DUNG FORMAT JSON, KHONG CO GI KHAC:
-{
-  "titles": [
-    {"shop_id": "TEN_SHOP_CHINH_XAC", "shop_name": "TEN_SHOP_CHINH_XAC", "title": "Tieu de san pham", "keywords": ["tu khoa 1", "tu khoa 2", "tu khoa 3"]},
-    ...
-  ]
-}
-LUU Y: shop_id va shop_name PHAI la ten shop chinh xac nhu trong danh sach, khong duoc thay doi.`;
+QUAN TRONG - DINH DANG JSON:
+- Tra ve DUNG FORMAT JSON ben duoi, KHONG CO GI KHAC
+- Moi title va keywords PHAI VIET TREN 1 DONG, KHONG XUONG DONG GIUA CHUOI
+- shop_id phai la ten shop chinh xac nhu trong danh sach
+
+{"titles":[{"shop_id":"TEN_SHOP","title":"Tieu de tren 1 dong","keywords":["tu khoa 1","tu khoa 2"]},{"shop_id":"TEN_SHOP_2","title":"Tieu de shop 2","keywords":["tu khoa"]}]}`;
 
   const userPrompt = `San pham: ${product.name}
 SKU: ${product.sku}
@@ -1671,6 +1669,7 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
     progress.style.display = 'none';
     btn.disabled = false;
     btn.textContent = '✨ Claude goi y tieu de';
+    console.error('claudeSuggestTitles error:', err);
     alert('Loi: ' + err.message + '\nVui long thu lai.');
   }
 }
