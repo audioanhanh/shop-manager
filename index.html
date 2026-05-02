@@ -1612,7 +1612,10 @@ KHONG viet gi them, KHONG giai thich, CHI tra ve danh sach ${state.shops.length}
       if(!shop) shop = state.shops.find(s=>shopName.includes(s.name)||s.name.includes(shopName));
       if(!shop && index < state.shops.length) shop = state.shops[index];
 
-      if(!shop) { console.warn('Khong match shop:', shopName); return; }
+      if(!shop) { 
+        console.warn('Khong match shop:', JSON.stringify(shopName), '| Shop trong DB:', state.shops.map(s=>JSON.stringify(s.name)).join(', ')); 
+        return; 
+      }
 
       if(title) {
         const titleEl = document.getElementById(`pt-title-${shop.id}`);
