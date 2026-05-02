@@ -1538,10 +1538,11 @@ CACH PHAN BO TU KHOA:
 TRA VE DUNG FORMAT JSON, KHONG CO GI KHAC:
 {
   "titles": [
-    {"shop_id": "ID_SHOP", "title": "Tieu de san pham", "keywords": ["tu khoa 1", "tu khoa 2", "tu khoa 3"]},
+    {"shop_id": "TEN_SHOP_CHINH_XAC", "shop_name": "TEN_SHOP_CHINH_XAC", "title": "Tieu de san pham", "keywords": ["tu khoa 1", "tu khoa 2", "tu khoa 3"]},
     ...
   ]
-}`;
+}
+LUU Y: shop_id va shop_name PHAI la ten shop chinh xac nhu trong danh sach, khong duoc thay doi.`;
 
   const userPrompt = `San pham: ${product.name}
 SKU: ${product.sku}
@@ -1584,41 +1585,54 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
       throw new Error('Khong co content trong response. Data: ' + JSON.stringify(data).slice(0,200));
     }
 
-    // Parse JSON
+    // Parse JSON - lam sach truoc khi parse
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if(!jsonMatch) throw new Error('Khong doc duoc ket qua tu Claude');
 
-    const result = JSON.parse(jsonMatch[0]);
+    // Lam sach JSON: xoa ky tu xuong dong ben trong string values
+    let cleanJson = jsonMatch[0]
+      .replace(/:\s*"([^"]*?)"/g, (match, p1) => {
+        return ': "' + p1.replace(/\n/g, ' ').replace(/\r/g, '') + '"';
+      });
+
+    const result = JSON.parse(cleanJson);
     if(!result.titles || !Array.isArray(result.titles)) throw new Error('Dinh dang ket qua khong hop le');
 
-    progressText.textContent = 'Dang dien tieu de vao cac o...';
-
-    // Map bang shop name neu khong co ID
-    result.titles.forEach(item => {
-      // Thu match bang shop_id truoc
-      let shop = state.shops.find(s=>s.id===item.shop_id);
-      // Neu khong co thi thu match bang ten
-      if(!shop) shop = state.shops.find(s=>s.name===item.shop_id||s.name.toLowerCase()===item.shop_id?.toLowerCase());
+    // Map ket qua vao cac o
+    let matched = 0;
+    result.titles.forEach((item, index) => {
+      let shop = null;
+      
+      // Thu 1: match bang shop_id chinh xac
+      if(item.shop_id) shop = state.shops.find(s=>s.id===item.shop_id);
+      
+      // Thu 2: match bang ten chinh xac
+      if(!shop && item.shop_id) shop = state.shops.find(s=>s.name===item.shop_id);
+      
+      // Thu 3: match bang ten khong phan biet hoa thuong
+      if(!shop && item.shop_id) shop = state.shops.find(s=>
+        s.name.toLowerCase().trim()===item.shop_id.toLowerCase().trim()
+      );
+      
+      // Thu 4: match bang shop_name neu co
+      if(!shop && item.shop_name) shop = state.shops.find(s=>
+        s.name.toLowerCase().trim()===item.shop_name.toLowerCase().trim()
+      );
+      
+      // Thu 5: lay theo thu tu index neu khong match duoc
+      if(!shop && index < state.shops.length) shop = state.shops[index];
 
       if(shop && item.title) {
         const titleEl = document.getElementById(`pt-title-${shop.id}`);
         const kwEl = document.getElementById(`pt-kw-${shop.id}`);
-        if(titleEl) titleEl.value = item.title;
+        if(titleEl) {
+          titleEl.value = item.title;
+          titleEl.style.borderColor = 'var(--accent)';
+          titleEl.style.background = '#4f7fff08';
+          setTimeout(()=>{titleEl.style.borderColor='';titleEl.style.background='';}, 3000);
+          matched++;
+        }
         if(kwEl && item.keywords) kwEl.value = Array.isArray(item.keywords)?item.keywords.join(', '):item.keywords;
-      }
-    });
-
-    progress.style.display = 'none';
-    btn.disabled = false;
-    btn.textContent = '✨ Claude goi y tieu de';
-
-    // Highlight cac o vua duoc dien
-    state.shops.forEach(s=>{
-      const el = document.getElementById(`pt-title-${s.id}`);
-      if(el && el.value) {
-        el.style.borderColor = 'var(--accent)';
-        el.style.background = '#4f7fff08';
-        setTimeout(()=>{el.style.borderColor='';el.style.background='';}, 3000);
       }
     });
 
