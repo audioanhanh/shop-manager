@@ -867,14 +867,14 @@ tr:hover td { background: var(--bg3); }
 
 <!-- WRONG ORDER MODAL -->
 <div class="modal-overlay" id="wrongOrderModal">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:720px;width:95vw">
     <div class="modal-title">Them Don Gui Sai Hang</div>
     <input type="hidden" id="woId"/>
 
-    <!-- Shop panel -->
+    <!-- Shop panel - hien het khong cuon -->
     <div class="form-group">
       <label class="form-label">Chon Shop *</label>
-      <div id="woShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;max-height:200px;overflow-y:auto;padding:4px"></div>
+      <div id="woShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px"></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -929,22 +929,21 @@ tr:hover td { background: var(--bg3); }
 
 <!-- COMPLAINT MODAL -->
 <div class="modal-overlay" id="complaintModal">
-  <div class="modal">
+  <div class="modal" style="max-width:720px;width:95vw">
     <div class="modal-title" id="complaintModalTitle">Them Khieu nai</div>
     <input type="hidden" id="complaintId"/>
+    <input type="hidden" id="complaintShop"/>
+
+    <div class="form-group">
+      <label class="form-label">Chon Shop *</label>
+      <div id="complaintShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px"></div>
+    </div>
+
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Shop *</label>
-        <select class="form-select" id="complaintShop">
-          <option value="">Chon shop...</option>
-        </select>
-      </div>
       <div class="form-group">
         <label class="form-label">Ma don hang</label>
         <input class="form-input" id="complaintOrder" placeholder="ORD123456"/>
       </div>
-    </div>
-    <div class="form-row">
       <div class="form-group">
         <label class="form-label">Loai khieu nai *</label>
         <select class="form-select" id="complaintType">
@@ -956,6 +955,8 @@ tr:hover td { background: var(--bg3); }
           <option value="khac">Khac</option>
         </select>
       </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">Trang thai</label>
         <select class="form-select" id="complaintStatus">
@@ -966,8 +967,6 @@ tr:hover td { background: var(--bg3); }
           <option value="resolved">Da giai quyet</option>
         </select>
       </div>
-    </div>
-    <div class="form-row">
       <div class="form-group">
         <label class="form-label">Ket qua</label>
         <select class="form-select" id="complaintResult">
@@ -978,6 +977,8 @@ tr:hover td { background: var(--bg3); }
           <option value="cancelled">Huy</option>
         </select>
       </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">So tien (VND)</label>
         <input class="form-input" id="complaintAmount" type="number" placeholder="0"/>
@@ -1284,10 +1285,7 @@ function populateSelects() {
   state.members.filter(m=>m.workspace!=='operations').forEach(m => { mSel.innerHTML += `<option value="${m.id}">${m.name}</option>`; });
 
   // Shops for task - now using tiles, skip select
-  // Shops for complaint
-  const csSel = document.getElementById('complaintShop');
-  csSel.innerHTML = '<option value="">Chon shop...</option>';
-  state.shops.forEach(s => { csSel.innerHTML += `<option value="${s.id}">[${platformLabels[s.platform]}] ${s.name}</option>`; });
+  // Shops for complaint - now using panel, skip select
 
   // Products for task
   const pSel = document.getElementById('taskProduct');
@@ -1690,6 +1688,18 @@ Viet 1 bai mo ta day du cho shop ${shop.name}.`;
 }
 
 
+
+function toggleComplaintShop(el, shopId) {
+  document.querySelectorAll('#complaintShopPanel [data-shop-id]').forEach(t => {
+    t.style.background = 'var(--bg3)';
+    t.style.borderColor = 'var(--border)';
+    t.dataset.selected = '';
+  });
+  el.style.background = '#4f7fff22';
+  el.style.borderColor = 'var(--accent)';
+  el.dataset.selected = 'true';
+  document.getElementById('complaintShop').value = shopId;
+}
 
 // ==================== WRONG ORDER ====================
 let state_wrongOrders = [];
@@ -2578,6 +2588,17 @@ function editComplaint(id) {
   document.getElementById('complaintResult').value = c.result||'';
   document.getElementById('complaintAmount').value = c.amount||'';
   document.getElementById('complaintNotes').value = c.evidence_notes||'';
+
+  // Render panel va chon shop hien tai
+  const panel = document.getElementById('complaintShopPanel');
+  if(panel) {
+    panel.innerHTML = state.shops.map(s=>`
+      <div onclick="toggleComplaintShop(this,'${s.id}')" data-shop-id="${s.id}"
+        style="padding:8px 10px;border:1px solid ${c.shop_id===s.id?'var(--accent)':'var(--border)'};border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:${c.shop_id===s.id?'#4f7fff22':'var(--bg3)'};transition:all .15s" ${c.shop_id===s.id?'data-selected="true"':''}>
+        <div style="color:var(--text)">${s.name}</div>
+        <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
+      </div>`).join('');
+  }
   openModal('complaintModal', true);
 }
 
@@ -2616,7 +2637,25 @@ function openModal(id, isEdit) {
   if(!isEdit) {
     if(id==='shopModal'){ document.getElementById('shopId').value=''; document.getElementById('shopModalTitle').textContent='Them Shop moi'; document.getElementById('shopName').value=''; document.getElementById('shopUrl').value=''; document.getElementById('shopNotes').value=''; document.getElementById('shopPlatform').value='shopee'; document.getElementById('shopStatus').value='active'; document.getElementById('shopBranch').value=''; }
     if(id==='productModal'){ document.getElementById('productId').value=''; document.getElementById('productModalTitle').textContent='Them San pham moi'; document.getElementById('productSku').value=''; document.getElementById('productName').value=''; document.getElementById('productCategory').value=''; document.getElementById('productPrice').value=''; }
-    if(id==='complaintModal'){ document.getElementById('complaintId').value=''; document.getElementById('complaintModalTitle').textContent='Them Khieu nai'; document.getElementById('complaintShop').value=''; document.getElementById('complaintOrder').value=''; document.getElementById('complaintType').value='hang_loi'; document.getElementById('complaintStatus').value='received'; document.getElementById('complaintResult').value=''; document.getElementById('complaintAmount').value=''; document.getElementById('complaintNotes').value=''; }
+    if(id==='complaintModal'){ 
+      document.getElementById('complaintId').value=''; 
+      document.getElementById('complaintModalTitle').textContent='Them Khieu nai'; 
+      document.getElementById('complaintShop').value=''; 
+      document.getElementById('complaintOrder').value=''; 
+      document.getElementById('complaintType').value='hang_loi'; 
+      document.getElementById('complaintStatus').value='received'; 
+      document.getElementById('complaintResult').value=''; 
+      document.getElementById('complaintAmount').value=''; 
+      document.getElementById('complaintNotes').value='';
+      // Render shop panel
+      const panel = document.getElementById('complaintShopPanel');
+      if(panel) panel.innerHTML = state.shops.map(s=>`
+        <div onclick="toggleComplaintShop(this,'${s.id}')" data-shop-id="${s.id}"
+          style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
+          <div style="color:var(--text)">${s.name}</div>
+          <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
+        </div>`).join('');
+    }
     if(id==='memberModal'){ document.getElementById('memberId').value=''; document.getElementById('memberModalTitle').textContent='Them Thanh vien'; document.getElementById('memberName').value=''; document.getElementById('memberEmail').value=''; document.getElementById('memberRole').value='member'; document.getElementById('memberWorkspace').value='shop'; }
     if(id==='taskModal'){
       document.getElementById('taskId').value='';
