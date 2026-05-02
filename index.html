@@ -293,35 +293,35 @@ tr:hover td { background: var(--bg3); }
     </div>
     <nav class="nav">
       <div class="nav-section">Tong quan</div>
-      <div class="nav-item active" onclick="showPage('daily')">
+      <div class="nav-item active" onclick="showPage('daily',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <span>Daily Board</span>
       </div>
       <div class="nav-section">Workspace 1</div>
-      <div class="nav-item" onclick="showPage('shops')">
+      <div class="nav-item" onclick="showPage('shops',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Quan ly Shop</span>
       </div>
-      <div class="nav-item" onclick="showPage('products')">
+      <div class="nav-item" onclick="showPage('products',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
         <span>San pham</span>
       </div>
-      <div class="nav-item" onclick="showPage('tasks')">
+      <div class="nav-item" onclick="showPage('tasks',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span>Giao Task</span>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-section">Workspace 2</div>
-      <div class="nav-item" onclick="showPage('complaints')">
+      <div class="nav-item" onclick="showPage('complaints',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>Khieu nai</span>
       </div>
-      <div class="nav-item" onclick="showPage('worklog')">
+      <div class="nav-item" onclick="showPage('worklog',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>San luong</span>
       </div>
       <div class="nav-divider"></div>
-      <div class="nav-item" onclick="showPage('members')">
+      <div class="nav-item" onclick="showPage('members',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         <span>Thanh vien</span>
       </div>
@@ -459,6 +459,20 @@ tr:hover td { background: var(--bg3); }
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- PRODUCT TITLES PAGE -->
+    <div class="page" id="page-product-titles">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="ptPageTitle">Tieu de theo shop</div>
+          <div class="page-sub" id="ptPageSub">Dat tieu de rieng cho tung shop</div>
+        </div>
+        <button class="btn btn-ghost" onclick="showPage('products', null)">
+          ← Quay lai
+        </button>
+      </div>
+      <div id="ptShopList" style="display:grid;gap:10px"></div>
     </div>
 
     <!-- TASKS -->
@@ -1015,7 +1029,7 @@ const SUPABASE_URL = 'https://mdldgxbkhttqzpprwrun.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbGRneGJraHR0cXpwcHJ3cnVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NDY4NzUsImV4cCI6MjA5MzEyMjg3NX0.8q8Wg5GVCQn7Uy1XvjNvKbGUQAFsoynihbBjeBDIg0s';
 
 let sb;
-let state = { shops:[], members:[], products:[], tasks:[], complaints:[], worklogs:[], branches:[], workCategories:[], memberFilter:'all', taskFilter:'all' };
+let state = { shops:[], members:[], products:[], tasks:[], complaints:[], worklogs:[], branches:[], workCategories:[], productTitles:[], memberFilter:'all', taskFilter:'all' };
 
 // INIT
 window.onload = async () => {
@@ -1059,7 +1073,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -1106,6 +1120,10 @@ async function loadWorklogs() {
 async function loadWorkCategories() {
   const { data } = await sb.from('work_categories').select('*').eq('is_active',true).order('sort_order');
   state.workCategories = data || [];
+}
+async function loadProductTitles() {
+  const { data } = await sb.from('product_shop_titles').select('*');
+  state.productTitles = data || [];
 }
 
 // HELPERS
@@ -1336,6 +1354,88 @@ function renderDaily() {
   renderProgress4();
 }
 
+// PRODUCT TITLES MANAGEMENT
+let currentProductId = null;
+
+async function openProductTitles(productId) {
+  currentProductId = productId;
+  const product = state.products.find(p=>p.id===productId);
+  if(!product) return;
+  document.getElementById('ptPageTitle').textContent = `${product.name} (${product.sku})`;
+  document.getElementById('ptPageSub').textContent = `Dat tieu de rieng cho ${state.shops.length} shop`;
+  renderProductTitlesPage();
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-product-titles').classList.add('active');
+}
+
+function renderProductTitlesPage() {
+  const container = document.getElementById('ptShopList');
+  if(!container) return;
+  if(state.shops.length===0) { container.innerHTML=`<div class="card"><div class="empty"><div class="empty-text">Chua co shop nao</div></div></div>`; return; }
+  const shopeeShops = state.shops.filter(s=>s.platform==='shopee');
+  const tiktokShops = state.shops.filter(s=>s.platform==='tiktok');
+
+  const renderShopGroup = (shops, platform) => {
+    if(shops.length===0) return '';
+    const label = platform==='shopee'?'SHOPEE':'TIKTOK SHOP';
+    const color = platform==='shopee'?'#fb923c':'#2dd4bf';
+    const shopRows = shops.map(s=>{
+      const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===s.id);
+      const title = existing?.title||'';
+      const keywords = existing?.keywords?.join(', ')||'';
+      const hasTitle = !!title;
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:140px 1fr 1fr 80px;gap:10px;align-items:center">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:${hasTitle?'var(--text)':'var(--text3)'}">${s.name}</div>
+          <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
+        </div>
+        <div><input class="form-input" style="font-size:12px;padding:6px 10px" id="pt-title-${s.id}" placeholder="Tieu de san pham cho ${s.name}..." value="${title.replace(/"/g,'&quot;')}"/></div>
+        <div><input class="form-input" style="font-size:12px;padding:6px 10px" id="pt-kw-${s.id}" placeholder="Tu khoa: ao thun, basic, nam..." value="${keywords.replace(/"/g,'&quot;')}"/></div>
+        <div><button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="saveProductTitle('${s.id}')">Luu</button></div>
+      </div>`;
+    }).join('');
+    return `<div>
+      <div style="font-size:11px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding-left:4px">${label}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">${shopRows}</div>
+    </div>`;
+  };
+
+  container.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid #fbbf2433;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:8px">
+      ⚠ Moi shop can co tieu de khac nhau de tranh trung tu khoa. Dien xong bam Luu tung shop hoac Luu tat ca.
+    </div>
+    ${renderShopGroup(shopeeShops,'shopee')}
+    ${renderShopGroup(tiktokShops,'tiktok')}
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveAllProductTitles()">Luu tat ca</button>
+    </div>`;
+}
+
+async function saveProductTitle(shopId) {
+  const titleEl = document.getElementById(`pt-title-${shopId}`);
+  const kwEl = document.getElementById(`pt-kw-${shopId}`);
+  if(!titleEl) return;
+  const title = titleEl.value.trim();
+  const keywords = kwEl?.value?.trim() ? kwEl.value.trim().split(',').map(k=>k.trim()).filter(Boolean) : [];
+  const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===shopId);
+  if(existing) {
+    await sb.from('product_shop_titles').update({title, keywords, updated_at:new Date().toISOString()}).eq('id',existing.id);
+  } else {
+    if(title) await sb.from('product_shop_titles').insert({product_id:currentProductId, shop_id:shopId, title, keywords});
+  }
+  await loadProductTitles();
+  renderProducts();
+  const btn = document.querySelector(`#pt-title-${shopId}`)?.closest('div[style*="grid"]')?.querySelector('button');
+  if(btn){btn.textContent='✓ Xong';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent='Luu';btn.style.background='';},1500);}
+}
+
+async function saveAllProductTitles() {
+  await Promise.all(state.shops.map(s=>saveProductTitle(s.id)));
+  await loadProductTitles();
+  renderProducts();
+  alert('Da luu tieu de cho tat ca shop!');
+}
+
 // RENDER SHOPS
 let shopFilter = 'all';
 function filterShop(f, el) {
@@ -1370,17 +1470,25 @@ function renderShops() {
 function renderProducts() {
   const tb = document.getElementById('productsTable');
   if(state.products.length===0){ tb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-text">Chua co san pham nao</div></div></td></tr>`; return; }
-  tb.innerHTML = state.products.map(p => `<tr>
-    <td><span style="font-family:monospace;background:var(--bg4);padding:2px 6px;border-radius:4px;font-size:12px">${p.sku}</span></td>
-    <td style="font-weight:500">${p.name}</td>
-    <td>${p.category||'-'}</td>
-    <td>${p.base_price?fmtCurrency(p.base_price):'-'}</td>
-    <td><span class="status ${p.is_active?'status-active':'status-inactive'}">${p.is_active?'Hoat dong':'Ngung'}</span></td>
-    <td><div style="display:flex;gap:6px">
-      <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">Sua</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Xoa</button>
-    </div></td>
-  </tr>`).join('');
+  tb.innerHTML = state.products.map(p => {
+    // Dem so shop da co tieu de
+    const titleCount = state.productTitles.filter(t=>t.product_id===p.id&&t.title).length;
+    const totalShops = state.shops.length;
+    const titleStatus = totalShops>0 ? `${titleCount}/${totalShops} shop` : '0 shop';
+    const titleColor = titleCount===0?'var(--text3)':titleCount===totalShops?'var(--green)':'var(--amber)';
+    return `<tr>
+      <td><span style="font-family:monospace;background:var(--bg4);padding:2px 6px;border-radius:4px;font-size:12px">${p.sku}</span></td>
+      <td style="font-weight:500">${p.name}</td>
+      <td>${p.category||'-'}</td>
+      <td>${p.base_price?fmtCurrency(p.base_price):'-'}</td>
+      <td><span class="status ${p.is_active?'status-active':'status-inactive'}">${p.is_active?'Hoat dong':'Ngung'}</span></td>
+      <td><div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="openProductTitles('${p.id}')" style="color:${titleColor}">Tieu de (${titleStatus})</button>
+        <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">Sua</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Xoa</button>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
 
 // RENDER TASKS
@@ -1773,11 +1881,11 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
 
 // NAV
-function showPage(name) {
+function showPage(name, evt) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  event.currentTarget.classList.add('active');
+  if(evt) evt.currentTarget.classList.add('active');
 }
 
 // PARSE SHOPEE URL
