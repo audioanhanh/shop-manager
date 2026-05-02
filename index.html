@@ -655,6 +655,11 @@ tr:hover td { background: var(--bg3); }
       <label class="form-label">Danh muc</label>
       <input class="form-input" id="productCategory" placeholder="Ao, Quan, Vay..."/>
     </div>
+    <div class="form-group">
+      <label class="form-label">Mo ta san pham (Claude dung de goi y tieu de)</label>
+      <textarea class="form-textarea" id="productDesc" placeholder="Chat lieu: cotton 100%&#10;Mau sac: trang, den, xam&#10;Size: S/M/L/XL&#10;Dac diem: thoang mat, co tron, tay ngan&#10;Doi tuong: nam thanh nien 18-35 tuoi&#10;Uu diem: gia re, ben dep, de phoi do" style="min-height:100px"></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">Dien cang chi tiet, Claude goi y cang chinh xac</div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('productModal')">Huy</button>
       <button class="btn btn-primary" onclick="saveProduct()">Luu</button>
@@ -1354,6 +1359,144 @@ function renderDaily() {
   renderProgress4();
 }
 
+// CLAUDE SUGGEST TITLES
+async function claudeSuggestTitles() {
+  const product = state.products.find(p=>p.id===currentProductId);
+  if(!product) return;
+  if(!product.description) {
+    alert('Vui long them Mo ta san pham truoc khi dung Claude goi y. Vao Sua san pham de them mo ta.');
+    return;
+  }
+
+  const btn = document.getElementById('claudeSuggestBtn');
+  const progress = document.getElementById('claudeProgress');
+  const progressText = document.getElementById('claudeProgressText');
+  btn.disabled = true;
+  btn.textContent = 'Dang xu ly...';
+  progress.style.display = 'block';
+
+  // Chuan bi thong tin shop
+  const shopInfo = state.shops.map(s => {
+    const direction = s.direction_notes || 'Khong co dinh huong cu the';
+    const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===s.id);
+    return `- ${s.name} (${s.platform==='shopee'?'Shopee':'TikTok Shop'}): Dinh huong: ${direction}${existing?.title?' | Tieu de hien tai: '+existing.title:''}`;
+  }).join('\n');
+
+  // Danh sach tieu de hien tai de tranh trung
+  const existingTitles = state.productTitles
+    .filter(t=>t.product_id===currentProductId&&t.title)
+    .map(t=>t.title).join(', ');
+
+  const systemPrompt = `Ban la chuyen gia SEO Shopee va TikTok Shop Viet Nam voi hon 5 nam kinh nghiem toi uu tieu de san pham.
+
+NHIEM VU: Tao tieu de san pham rieng biet cho tung shop, chuan SEO, phu hop thi truong Viet Nam.
+
+QUY TAC BAT BUOC:
+1. Moi shop PHAI co tu khoa chinh KHAC NHAU hoan toan - tranh canh tranh noi bo
+2. Tieu de Shopee: 60-120 ky tu, tu khoa chinh dau tien, tieng Viet co dau day du
+3. Tieu de TikTok: 40-80 ky tu, tu nhien, gan gui, co the them cam xuc nhe
+4. Dua vao cach khach hang THUC SU goi san pham khi tim kiem
+5. Khong spam tu khoa, khong lap lai qua nhieu
+6. Khong dung ten thuong hieu lon (Nike, Adidas...) neu khong phai dai ly chinh thuc
+7. Khong cac cum tu: "100% chinh hang", "hang doc quyen", "giam ngay X kg", "trang da ngay", "chua benh"
+8. Khong tu lien quan chinh tri, ton giao, bao luc, co bac, dau tu tai chinh
+9. Khong dung ky tu dac biet la: !, @, #, $, %
+10. Khong viet tat kho hieu, khong dung tieng nuoc ngoai tru ten quoc te pho bien
+
+CACH PHAN BO TU KHOA:
+- Shop Shopee: nhom theo goc do san pham (chat lieu, phong cach, dip mac, doi tuong, tinh nang)
+- Shop TikTok: nhom theo trend, cam xuc, nhu cau cu the
+
+TRA VE DUNG FORMAT JSON, KHONG CO GI KHAC:
+{
+  "titles": [
+    {"shop_id": "ID_SHOP", "title": "Tieu de san pham", "keywords": ["tu khoa 1", "tu khoa 2", "tu khoa 3"]},
+    ...
+  ]
+}`;
+
+  const userPrompt = `San pham: ${product.name}
+SKU: ${product.sku}
+Mo ta: ${product.description}
+${product.category?'Danh muc: '+product.category:''}
+
+Danh sach ${state.shops.length} shop can tao tieu de:
+${shopInfo}
+
+${existingTitles?'Cac tieu de da ton tai (tranh trung tu khoa chinh): '+existingTitles:''}
+
+Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JSON voi dung so shop.`;
+
+  try {
+    progressText.textContent = 'Claude dang tao tieu de cho ' + state.shops.length + ' shop...';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    // Parse JSON
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('Khong doc duoc ket qua tu Claude');
+
+    const result = JSON.parse(jsonMatch[0]);
+    if(!result.titles || !Array.isArray(result.titles)) throw new Error('Dinh dang ket qua khong hop le');
+
+    progressText.textContent = 'Dang dien tieu de vao cac o...';
+
+    // Map bang shop name neu khong co ID
+    result.titles.forEach(item => {
+      // Thu match bang shop_id truoc
+      let shop = state.shops.find(s=>s.id===item.shop_id);
+      // Neu khong co thi thu match bang ten
+      if(!shop) shop = state.shops.find(s=>s.name===item.shop_id||s.name.toLowerCase()===item.shop_id?.toLowerCase());
+
+      if(shop && item.title) {
+        const titleEl = document.getElementById(`pt-title-${shop.id}`);
+        const kwEl = document.getElementById(`pt-kw-${shop.id}`);
+        if(titleEl) titleEl.value = item.title;
+        if(kwEl && item.keywords) kwEl.value = Array.isArray(item.keywords)?item.keywords.join(', '):item.keywords;
+      }
+    });
+
+    progress.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '✨ Claude goi y tieu de';
+
+    // Highlight cac o vua duoc dien
+    state.shops.forEach(s=>{
+      const el = document.getElementById(`pt-title-${s.id}`);
+      if(el && el.value) {
+        el.style.borderColor = 'var(--accent)';
+        el.style.background = '#4f7fff08';
+        setTimeout(()=>{el.style.borderColor='';el.style.background='';}, 3000);
+      }
+    });
+
+    // Show success message
+    const successDiv = document.createElement('div');
+    successDiv.style.cssText = 'background:#34d39922;border:1px solid #34d39944;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--green);margin-top:8px';
+    successDiv.textContent = '✓ Claude da goi y xong ' + result.titles.length + ' tieu de. Kiem tra lai va bam "Luu tat ca" khi ok.';
+    document.getElementById('claudeProgress').after(successDiv);
+    setTimeout(()=>successDiv.remove(), 5000);
+
+  } catch(err) {
+    progress.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '✨ Claude goi y tieu de';
+    alert('Loi: ' + err.message + '\nVui long thu lai.');
+  }
+}
+
 // PRODUCT TITLES MANAGEMENT
 let currentProductId = null;
 
@@ -1404,6 +1547,25 @@ function renderProductTitlesPage() {
     <div style="background:var(--bg2);border:1px solid #fbbf2433;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:8px">
       ⚠ Moi shop can co tieu de khac nhau de tranh trung tu khoa. Dien xong bam Luu tung shop hoac Luu tat ca.
     </div>
+
+    <!-- CLAUDE SUGGESTION BUTTON -->
+    <div style="background:linear-gradient(135deg,#1a2540,#1e2d4a);border:1px solid #2a4070;border-radius:var(--r2);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Claude goi y tieu de tu dong</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Claude se tao 16 tieu de khac nhau, chuan SEO, dua tren mo ta san pham va dinh huong tung shop</div>
+      </div>
+      <button id="claudeSuggestBtn" class="btn btn-primary" onclick="claudeSuggestTitles()" style="min-width:160px;justify-content:center">
+        ✨ Claude goi y tieu de
+      </button>
+    </div>
+
+    <div id="claudeProgress" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="spinner"></div>
+        <span id="claudeProgressText" style="font-size:13px;color:var(--text2)">Claude dang phan tich san pham...</span>
+      </div>
+    </div>
+
     ${renderShopGroup(shopeeShops,'shopee')}
     ${renderShopGroup(tiktokShops,'tiktok')}
     <div style="display:flex;justify-content:flex-end;margin-top:8px">
@@ -1660,7 +1822,8 @@ async function saveProduct() {
     sku: document.getElementById('productSku').value.trim(),
     name: document.getElementById('productName').value.trim(),
     category: document.getElementById('productCategory').value.trim()||null,
-    base_price: Number(document.getElementById('productPrice').value)||null
+    base_price: Number(document.getElementById('productPrice').value)||null,
+    description: document.getElementById('productDesc')?.value?.trim()||null
   };
   if(!data.sku||!data.name) return alert('Vui long nhap SKU va ten san pham');
   if(id) { await sb.from('products').update(data).eq('id',id); }
@@ -1798,6 +1961,7 @@ function editProduct(id) {
   document.getElementById('productName').value = p.name;
   document.getElementById('productCategory').value = p.category||'';
   document.getElementById('productPrice').value = p.base_price||'';
+  if(document.getElementById('productDesc')) document.getElementById('productDesc').value = p.description||'';
   openModal('productModal', true);
 }
 
