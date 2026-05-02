@@ -1359,6 +1359,54 @@ function renderDaily() {
   renderProgress4();
 }
 
+// SHOP DESCRIPTIONS STATE
+let shopDescriptions = {}; // shopId -> mo ta
+let shopDescUsed = {};     // shopId -> da dung chua
+
+function toggleDescPopup(shopId) {
+  // Dong tat ca popup khac
+  state.shops.forEach(s=>{
+    if(s.id!==shopId) {
+      const p = document.getElementById(`desc-popup-${s.id}`);
+      if(p) p.style.display='none';
+    }
+  });
+  const popup = document.getElementById(`desc-popup-${shopId}`);
+  if(popup) popup.style.display = popup.style.display==='none'?'block':'none';
+}
+
+function copyShopDesc(shopId) {
+  const ta = document.getElementById(`desc-text-${shopId}`);
+  if(!ta || !ta.value) return;
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn = document.getElementById(`copy-desc-${shopId}`);
+    if(btn){btn.textContent='✓ Da copy!';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent='Copy';btn.style.background='var(--accent)';},2000);}
+  }).catch(()=>{
+    ta.select();
+    document.execCommand('copy');
+  });
+}
+
+function toggleDescUsed(shopId) {
+  shopDescUsed[shopId] = !shopDescUsed[shopId];
+  const btn = document.getElementById(`used-btn-${shopId}`);
+  if(btn){
+    btn.innerHTML = shopDescUsed[shopId]?'✅':'☐';
+    btn.style.background = shopDescUsed[shopId]?'#34d39922':'var(--bg4)';
+    btn.style.borderColor = shopDescUsed[shopId]?'var(--green)':'var(--border)';
+  }
+}
+
+// Dong popup khi click ra ngoai
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('[id^="desc-popup-"]') && !e.target.closest('[id^="desc-btn-"]')) {
+    state.shops.forEach(s=>{
+      const p = document.getElementById(`desc-popup-${s.id}`);
+      if(p) p.style.display='none';
+    });
+  }
+});
+
 // CLAUDE GENERATE DESCRIPTION
 async function claudeGenerateDesc() {
   const product = state.products.find(p=>p.id===currentProductId);
@@ -1374,54 +1422,55 @@ async function claudeGenerateDesc() {
 
   const techNotes = product.tech_notes || '';
 
+  // Chuan bi danh sach shop voi tieu de hien tai
+  const shopTitleList = state.shops.map((s,i) => {
+    const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===s.id);
+    const title = existing?.title || document.getElementById(`pt-title-${s.id}`)?.value || '';
+    return `${i+1}. ${s.name} (${s.platform==='shopee'?'Shopee':'TikTok'})${title?' | Tieu de: '+title:''}`;
+  }).join('\n');
+
   const systemPrompt = `Ban la chuyen gia viet mo ta san pham Shopee/TikTok Shop cho thi truong Viet Nam.
 
-YEU CAU BAN CHAT:
-1. Ngon ngu: Tieng Viet, ro rang, gan gui, khong hoa my
-2. KHONG dung markdown: khong ** khong ## khong * khong - dau dong
-3. Xuat dong: chi dung 1 dong trong giua cac doan, KHONG de 2-3 dong trong
-4. Dau dong moi: dung ky tu dac biet nhu ✅ ⚠️ ❓ 📦 🔧 📐 thay cho bold/italic
-5. KHONG hashtag
-6. KHONG cung dieu: khong "chat luong vuot troi", khong "hang chinh hang 100%", khong "giao hang sieu toc"
-7. Viet trung thuc theo thong so that cua san pham
+YEU CAU:
+1. Tieng Viet, ro rang, gan gui
+2. KHONG dung markdown: khong ** khong ## khong *
+3. Chi 1 dong trong giua cac doan, KHONG de 2-3 dong trong
+4. Dung emoji thay bullet: ✅ ⚠️ ❓ 📦 🔧 📐
+5. KHONG hashtag, KHONG cung dieu
 
-CAU TRUC BAT BUOC (theo dung thu tu nay):
-⚠️ [Canh bao ky thuat neu co - dat len DAU]
-
-[Ten san pham + mo ta 1-2 cau ngan, co tu khoa chinh]
-
+CAU TRUC BAT BUOC:
+⚠️ [Canh bao ky thuat neu can]
+[Gioi thieu + tu khoa chinh cua SHOP DO]
 ✅ DAC DIEM SAN PHAM
-[Liet ke dac diem, moi dac diem 1 dong, bat dau bang ky tu phu hop]
-
 📦 THONG SO KY THUAT
-[Thong so cu the, ro rang]
-
 🔧 UNG DUNG
-[Mo ta ung dung thuc te]
-
 📐 CACH CHON DUNG KICH THUOC
-[Huong dan chon, neu co lien quan]
-
-❓ CAU HOI THUONG GAP
-[Giai thich cac thac mac pho bien, dung format Hoi - Dap]
-
+❓ CAU HOI THUONG GAP (bao gom giai thich ohm neu lien quan)
 ⚠️ LUU Y MUA HANG
-[Luu y quan trong truoc khi dat hang]
 
-QUY TAC DINH DANG XUAT:
-- Giua cac muc lon: 1 dong trong
-- Giua cac dong trong cung muc: KHONG co dong trong
-- Ky tu dau dong: dung emoji thay the bullet point
-- Tuyet doi khong dung ky tu \`**\`, \`*\`, \`##\`, \`-\``;
+QUAN TRONG:
+- Moi shop co tu khoa chinh KHAC NHAU o phan gioi thieu
+- Tu khoa chinh lay tu tieu de cua shop do
+- Cau truc giong nhau nhung tu khoa khac nhau
+
+TRA VE FORMAT: SHOP_NAME===noi_dung_mo_ta===SHOP_NAME
+Moi shop cach nhau bang dong ---NEXT---`;
 
   const userPrompt = `San pham: ${product.name}
-SKU: ${product.sku}  
-Mo ta: ${product.description}
-${product.category?'Danh muc: '+product.category:''}
+SKU: ${product.sku}
+Mo ta ky thuat: ${product.description}
 ${techNotes?'Ghi chu ky thuat: '+techNotes:''}
 
-Hay viet 1 bai mo ta san pham day du, chuan SEO Shopee Viet Nam.
-Lua chon tu khoa chinh phu hop nhat voi cach khach hay tim kiem san pham nay.`;
+Danh sach ${state.shops.length} shop voi tieu de:
+${shopTitleList}
+
+Viet ${state.shops.length} mo ta, moi shop 1 mo ta khac nhau o tu khoa chinh.
+Format tra ve:
+TenShop===noi dung mo ta day du===TenShop
+---NEXT---
+TenShop2===noi dung mo ta===TenShop2
+---NEXT---
+...`;
 
   try {
     const response = await fetch('/api/claude', {
@@ -1429,62 +1478,77 @@ Lua chon tu khoa chinh phu hop nhat voi cach khach hay tim kiem san pham nay.`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        max_tokens: 16000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
     const data = await response.json();
+    if(data.error) throw new Error('API loi: ' + (data.error.message||JSON.stringify(data.error)));
+    if(!data.content?.[0]) throw new Error('Khong co ket qua');
 
-    // Kiem tra loi tu Anthropic
-    if(data.error) {
-      throw new Error('Anthropic API loi: ' + (data.error.message || JSON.stringify(data.error)));
-    }
-    if(!data.content || !data.content[0]) {
-      throw new Error('Khong co content. Data: ' + JSON.stringify(data).slice(0,200));
-    }
+    const text = data.content[0].text;
 
-    let text = data.content?.[0]?.text || '';
+    // Parse tung mo ta theo format TenShop===content===TenShop
+    const blocks = text.split('---NEXT---').map(b=>b.trim()).filter(Boolean);
+    let filled = 0;
 
-    // Clean up: dam bao khong co markdown va khong co qua nhieu dong trong
-    text = text
-      .replace(/\*\*(.*?)\*\*/g, '$1')  // Xoa **bold**
-      .replace(/\*(.*?)\*/g, '$1')       // Xoa *italic*
-      .replace(/^#{1,6}\s/gm, '')        // Xoa heading ##
-      .replace(/^[-•]\s/gm, '')          // Xoa bullet -
-      .replace(/\n{3,}/g, '\n\n');       // Giam xuong toi da 2 dong trong lien tiep
+    blocks.forEach(block => {
+      const match = block.match(/^(.+?)====([\s\S]+?)====\1$/m) ||
+                    block.match(/^(.+?)===([\s\S]+?)===/m);
+      if(!match) return;
+      const shopName = match[1].trim();
+      const desc = match[2].trim()
+        .replace(/\*\*(.*?)\*\*/g,'$1')
+        .replace(/\*(.*?)\*/g,'$1')
+        .replace(/^#{1,6}\s/gm,'')
+        .replace(/\n{3,}/g,'\n\n');
 
-    document.getElementById('claudeDescText').value = text;
-    document.getElementById('claudeDescResult').style.display = 'block';
-    document.getElementById('claudeDescResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const shop = state.shops.find(s=>s.name===shopName) ||
+                   state.shops.find(s=>s.name.toLowerCase()===shopName.toLowerCase());
+      if(!shop) return;
+
+      shopDescriptions[shop.id] = desc;
+      shopDescUsed[shop.id] = false;
+
+      // Cap nhat textarea trong popup neu dang mo
+      const ta = document.getElementById(`desc-text-${shop.id}`);
+      if(ta) ta.value = desc;
+
+      // Cap nhat mau icon
+      const descBtn = document.getElementById(`desc-btn-${shop.id}`);
+      if(descBtn) {
+        descBtn.style.background = '#4f7fff22';
+        descBtn.style.borderColor = 'var(--accent)';
+      }
+      filled++;
+    });
 
     btn.disabled = false;
     btn.textContent = '📝 Tao lai mo ta';
 
+    if(filled > 0) {
+      // Hien thong bao thanh cong
+      const successDiv = document.createElement('div');
+      successDiv.style.cssText = 'background:#34d39922;border:1px solid #34d39944;border-radius:var(--r);padding:8px 14px;font-size:12px;color:var(--green);margin-top:8px';
+      successDiv.textContent = `✓ Da tao xong ${filled}/${state.shops.length} mo ta. Bam icon 📝 ben canh tung shop de xem va copy.`;
+      btn.closest('div').after(successDiv);
+      setTimeout(()=>successDiv.remove(), 6000);
+    }
+
   } catch(err) {
     btn.disabled = false;
     btn.textContent = '📝 Tao mo ta san pham';
-    alert('Loi: ' + err.message + '\nVui long thu lai.');
+    alert('Loi: ' + err.message);
   }
 }
 
+
 function copyDesc() {
-  const text = document.getElementById('claudeDescText').value;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copyDescBtn');
-    btn.textContent = '✓ Da copy!';
-    btn.style.background = 'var(--green)';
-    setTimeout(()=>{ btn.textContent='Copy'; btn.style.background='var(--accent)'; }, 2000);
-  }).catch(() => {
-    // Fallback cho trinh duyet cu
-    const ta = document.getElementById('claudeDescText');
-    ta.select();
-    document.execCommand('copy');
-    const btn = document.getElementById('copyDescBtn');
-    btn.textContent = '✓ Da copy!';
-    setTimeout(()=>{ btn.textContent='Copy'; }, 2000);
-  });
+  const text = document.getElementById('claudeDescText')?.value;
+  if(!text) return;
+  navigator.clipboard.writeText(text).catch(()=>{});
 }
 
 // CLAUDE SUGGEST TITLES
@@ -1676,13 +1740,33 @@ function renderProductTitlesPage() {
       const title = existing?.title||'';
       const keywords = existing?.keywords?.join(', ')||'';
       const hasTitle = !!title;
-      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:140px 1fr 1fr 80px;gap:10px;align-items:center">
+      const desc = shopDescriptions[s.id] || '';
+      const descUsed = shopDescUsed[s.id] || false;
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:140px 1fr 1fr auto auto 80px;gap:10px;align-items:center">
         <div>
           <div style="font-size:12px;font-weight:600;color:${hasTitle?'var(--text)':'var(--text3)'}">${s.name}</div>
           <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
         </div>
         <div><input class="form-input" style="font-size:12px;padding:6px 10px" id="pt-title-${s.id}" placeholder="Tieu de san pham cho ${s.name}..." value="${title.replace(/"/g,'&quot;')}"/></div>
         <div><input class="form-input" style="font-size:12px;padding:6px 10px" id="pt-kw-${s.id}" placeholder="Tu khoa: ao thun, basic, nam..." value="${keywords.replace(/"/g,'&quot;')}"/></div>
+        <div style="position:relative">
+          <button onclick="toggleDescPopup('${s.id}')" title="Xem mo ta san pham" style="background:${desc?'#4f7fff22':'var(--bg4)'};border:1px solid ${desc?'var(--accent)':'var(--border)'};border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" id="desc-btn-${s.id}">📝</button>
+          <div id="desc-popup-${s.id}" style="display:none;position:absolute;right:0;top:38px;width:380px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;z-index:100;box-shadow:0 8px 24px #0008">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--text)">${s.name}</span>
+              <div style="display:flex;gap:6px">
+                <button onclick="copyShopDesc('${s.id}')" id="copy-desc-${s.id}" style="background:var(--accent);border:none;color:#fff;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Copy</button>
+                <button onclick="toggleDescPopup('${s.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer">✕</button>
+              </div>
+            </div>
+            <textarea id="desc-text-${s.id}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px;color:var(--text);font-size:11px;font-family:inherit;height:200px;resize:vertical;line-height:1.6" readonly placeholder="Chua co mo ta. Bam 'Tao mo ta' de Claude viet.">${desc}</textarea>
+          </div>
+        </div>
+        <div>
+          <button onclick="toggleDescUsed('${s.id}')" id="used-btn-${s.id}" title="Danh dau da su dung" style="background:${descUsed?'#34d39922':'var(--bg4)'};border:1px solid ${descUsed?'var(--green)':'var(--border)'};border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">
+            ${descUsed?'✅':'☐'}
+          </button>
+        </div>
         <div><button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="saveProductTitle('${s.id}')">Luu</button></div>
       </div>`;
     }).join('');
