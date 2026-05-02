@@ -316,6 +316,10 @@ tr:hover td { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>Khieu nai</span>
       </div>
+      <div class="nav-item" onclick="showPage('wrong-order',event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <span>Gui sai hang</span>
+      </div>
       <div class="nav-item" onclick="showPage('worklog',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>San luong</span>
@@ -522,6 +526,55 @@ tr:hover td { background: var(--bg3); }
           <table>
             <thead><tr><th>Ma don</th><th>Shop</th><th>Loai</th><th>Trang thai</th><th>Ket qua</th><th>So tien</th><th>Ngay</th><th>Hanh dong</th></tr></thead>
             <tbody id="complaintsTable"><tr><td colspan="8"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- WRONG ORDER -->
+    <div class="page" id="page-wrong-order">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gui Sai Hang</div>
+          <div class="page-sub">Theo doi don hang gui sai, thong ke theo tuan / thang</div>
+        </div>
+        <button class="btn btn-primary" onclick="openWrongOrderModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Them don sai
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr)" id="wrongOrderStats">
+        <div class="stat-card"><div class="stat-label">Thang nay</div><div class="stat-value" id="wo-month">0</div></div>
+        <div class="stat-card"><div class="stat-label">Tuan nay</div><div class="stat-value" id="wo-week">0</div></div>
+        <div class="stat-card"><div class="stat-label">Shop sai nhieu nhat</div><div class="stat-value" style="font-size:14px" id="wo-top-shop">-</div></div>
+        <div class="stat-card"><div class="stat-label">Dang xu ly</div><div class="stat-value" style="color:var(--yellow)" id="wo-pending">0</div></div>
+      </div>
+
+      <!-- Filter + Export -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select class="form-input" style="width:140px" id="woFilterPeriod" onchange="renderWrongOrders()">
+          <option value="month">Thang nay</option>
+          <option value="week">Tuan nay</option>
+          <option value="last_month">Thang truoc</option>
+          <option value="all">Tat ca</option>
+        </select>
+        <select class="form-input" style="width:160px" id="woFilterShop" onchange="renderWrongOrders()">
+          <option value="">Tat ca shop</option>
+        </select>
+        <button class="btn btn-ghost" onclick="exportWrongOrders()" style="margin-left:auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Xuat bao cao
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ngay</th><th>Shop</th><th>Ma don</th><th>Phai gui</th><th>Thuc te gui</th><th>Ket qua</th><th>Nguoi nhap</th><th>Ghi chu</th><th></th></tr></thead>
+            <tbody id="wrongOrderTable"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -812,6 +865,68 @@ tr:hover td { background: var(--bg3); }
   </div>
 </div>
 
+<!-- WRONG ORDER MODAL -->
+<div class="modal-overlay" id="wrongOrderModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">Them Don Gui Sai Hang</div>
+    <input type="hidden" id="woId"/>
+
+    <!-- Shop panel -->
+    <div class="form-group">
+      <label class="form-label">Chon Shop *</label>
+      <div id="woShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;max-height:200px;overflow-y:auto;padding:4px"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Ngay ghi nhan *</label>
+        <input class="form-input" type="date" id="woDate"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ma don hang *</label>
+        <input class="form-input" type="text" id="woOrder" placeholder="VD: SP123456789"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Hang phai gui</label>
+        <input class="form-input" type="text" id="woCorrect" placeholder="VD: Coil 72mm titan"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hang thuc te gui</label>
+        <input class="form-input" type="text" id="woActual" placeholder="VD: Coil 65mm mylar"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Ket qua xu ly</label>
+        <select class="form-input" id="woResult">
+          <option value="pending">Dang xu ly</option>
+          <option value="resend">Gui lai hang</option>
+          <option value="refund">Hoan tien</option>
+          <option value="other">Khac</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nguoi xu ly</label>
+        <input class="form-input" type="text" id="woHandler" placeholder="Ten nguoi xu ly"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ghi chu</label>
+      <textarea class="form-input" id="woNotes" rows="2" placeholder="Ghi chu them neu can..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('wrongOrderModal')">Huy</button>
+      <button class="btn btn-primary" onclick="saveWrongOrder()">Luu</button>
+    </div>
+  </div>
+</div>
+
 <!-- COMPLAINT MODAL -->
 <div class="modal-overlay" id="complaintModal">
   <div class="modal">
@@ -1078,7 +1193,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -1575,6 +1690,197 @@ Viet 1 bai mo ta day du cho shop ${shop.name}.`;
 }
 
 
+
+// ==================== WRONG ORDER ====================
+let state_wrongOrders = [];
+
+async function loadWrongOrders() {
+  const { data } = await sb.from('wrong_orders').select('*').order('date', {ascending: false});
+  state_wrongOrders = data || [];
+}
+
+function openWrongOrderModal(id = null) {
+  document.getElementById('woId').value = id || '';
+  document.getElementById('woDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('woOrder').value = '';
+  document.getElementById('woCorrect').value = '';
+  document.getElementById('woActual').value = '';
+  document.getElementById('woResult').value = 'pending';
+  document.getElementById('woHandler').value = currentUser?.name || '';
+  document.getElementById('woNotes').value = '';
+
+  // Render shop panel
+  const panel = document.getElementById('woShopPanel');
+  panel.innerHTML = state.shops.map(s => `
+    <div onclick="toggleWoShop(this,'${s.id}')" data-shop-id="${s.id}"
+      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
+      <div style="color:var(--text)">${s.name}</div>
+      <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
+    </div>`).join('');
+
+  if(id) {
+    const wo = state_wrongOrders.find(w=>w.id===id);
+    if(wo) {
+      document.getElementById('woDate').value = wo.date || '';
+      document.getElementById('woOrder').value = wo.order_id || '';
+      document.getElementById('woCorrect').value = wo.correct_item || '';
+      document.getElementById('woActual').value = wo.actual_item || '';
+      document.getElementById('woResult').value = wo.result || 'pending';
+      document.getElementById('woHandler').value = wo.handler || '';
+      document.getElementById('woNotes').value = wo.notes || '';
+      // Chon shop
+      const tile = panel.querySelector(`[data-shop-id="${wo.shop_id}"]`);
+      if(tile) toggleWoShop(tile, wo.shop_id);
+    }
+  }
+  openModal('wrongOrderModal');
+}
+
+function toggleWoShop(el, shopId) {
+  document.querySelectorAll('#woShopPanel [data-shop-id]').forEach(t => {
+    t.style.background = 'var(--bg3)';
+    t.style.borderColor = 'var(--border)';
+    t.dataset.selected = '';
+  });
+  el.style.background = '#4f7fff22';
+  el.style.borderColor = 'var(--accent)';
+  el.dataset.selected = 'true';
+}
+
+async function saveWrongOrder() {
+  const shopEl = document.querySelector('#woShopPanel [data-selected="true"]');
+  if(!shopEl) { alert('Vui long chon shop'); return; }
+  const shopId = shopEl.dataset.shopId;
+  const date = document.getElementById('woDate').value;
+  const orderId = document.getElementById('woOrder').value.trim();
+  if(!date || !orderId) { alert('Vui long nhap ngay va ma don hang'); return; }
+
+  const data = {
+    shop_id: shopId,
+    date,
+    order_id: orderId,
+    correct_item: document.getElementById('woCorrect').value.trim(),
+    actual_item: document.getElementById('woActual').value.trim(),
+    result: document.getElementById('woResult').value,
+    handler: document.getElementById('woHandler').value.trim(),
+    notes: document.getElementById('woNotes').value.trim(),
+    created_by: currentUser?.id || null
+  };
+
+  const id = document.getElementById('woId').value;
+  if(id) {
+    await sb.from('wrong_orders').update(data).eq('id', id);
+  } else {
+    await sb.from('wrong_orders').insert(data);
+  }
+  closeModal('wrongOrderModal');
+  await loadWrongOrders();
+  renderWrongOrders();
+}
+
+async function deleteWrongOrder(id) {
+  if(!confirm('Xoa don sai hang nay?')) return;
+  await sb.from('wrong_orders').delete().eq('id', id);
+  await loadWrongOrders();
+  renderWrongOrders();
+}
+
+function renderWrongOrders() {
+  const period = document.getElementById('woFilterPeriod')?.value || 'month';
+  const shopFilter = document.getElementById('woFilterShop')?.value || '';
+
+  // Cap nhat filter shop
+  const shopSel = document.getElementById('woFilterShop');
+  if(shopSel && shopSel.options.length <= 1) {
+    state.shops.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name;
+      shopSel.appendChild(opt);
+    });
+  }
+
+  const now = new Date();
+  const filtered = state_wrongOrders.filter(w => {
+    const d = new Date(w.date);
+    if(shopFilter && w.shop_id !== shopFilter) return false;
+    if(period === 'week') {
+      const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+      startOfWeek.setHours(0,0,0,0);
+      return d >= startOfWeek;
+    }
+    if(period === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    if(period === 'last_month') {
+      const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+      return d.getMonth()===lm.getMonth() && d.getFullYear()===lm.getFullYear();
+    }
+    return true;
+  });
+
+  // Stats
+  const thisMonth = state_wrongOrders.filter(w => {
+    const d = new Date(w.date);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  });
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay() + 1); startOfWeek.setHours(0,0,0,0);
+  const thisWeek = state_wrongOrders.filter(w => new Date(w.date) >= startOfWeek);
+  const pending = state_wrongOrders.filter(w => w.result === 'pending');
+
+  // Top shop
+  const shopCount = {};
+  thisMonth.forEach(w => { shopCount[w.shop_id] = (shopCount[w.shop_id]||0)+1; });
+  const topShopId = Object.entries(shopCount).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const topShop = state.shops.find(s=>s.id===topShopId);
+
+  document.getElementById('wo-month').textContent = thisMonth.length;
+  document.getElementById('wo-week').textContent = thisWeek.length;
+  document.getElementById('wo-top-shop').textContent = topShop ? topShop.name : '-';
+  document.getElementById('wo-pending').textContent = pending.length;
+
+  const resultLabels = { pending:'Dang xu ly', resend:'Gui lai hang', refund:'Hoan tien', other:'Khac' };
+  const resultColors = { pending:'var(--yellow)', resend:'var(--green)', refund:'var(--accent)', other:'var(--text3)' };
+
+  const tbody = document.getElementById('wrongOrderTable');
+  if(filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-text">Chua co don sai nao trong giai doan nay</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(w => {
+    const shop = state.shops.find(s=>s.id===w.shop_id);
+    const member = state.members.find(m=>m.id===w.created_by);
+    return `<tr>
+      <td>${w.date ? new Date(w.date).toLocaleDateString('vi-VN') : '-'}</td>
+      <td><div style="font-weight:500">${shop?.name||'-'}</div><span class="badge badge-${shop?.platform||'shopee'}" style="font-size:10px">${platformLabels[shop?.platform||'shopee']}</span></td>
+      <td style="font-family:monospace;font-size:12px">${w.order_id||'-'}</td>
+      <td>${w.correct_item||'-'}</td>
+      <td style="color:var(--red)">${w.actual_item||'-'}</td>
+      <td><span style="background:${resultColors[w.result]}22;color:${resultColors[w.result]};padding:2px 8px;border-radius:4px;font-size:11px">${resultLabels[w.result]||'-'}</span></td>
+      <td>${w.handler||member?.name||'-'}</td>
+      <td style="color:var(--text3);font-size:12px">${w.notes||''}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openWrongOrderModal('${w.id}')">Sua</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteWrongOrder('${w.id}')">Xoa</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function exportWrongOrders() {
+  const period = document.getElementById('woFilterPeriod')?.value || 'month';
+  const now = new Date();
+  const filtered = state_wrongOrders.filter(w => {
+    const d = new Date(w.date);
+    if(period === 'week') { const sw = new Date(now); sw.setDate(now.getDate()-now.getDay()+1); sw.setHours(0,0,0,0); return d >= sw; }
+    if(period === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    if(period === 'last_month') { const lm = new Date(now.getFullYear(),now.getMonth()-1,1); return d.getMonth()===lm.getMonth() && d.getFullYear()===lm.getFullYear(); }
+    return true;
+  });
+  const resultLabels = { pending:'Dang xu ly', resend:'Gui lai hang', refund:'Hoan tien', other:'Khac' };
+  const lines = ['Ngay\tShop\tMa don\tPhai gui\tThuc te gui\tKet qua\tNguoi xu ly\tGhi chu'];
+  filtered.forEach(w => {
+    const shop = state.shops.find(s=>s.id===w.shop_id);
+    lines.push([w.date, shop?.name||'', w.order_id||'', w.correct_item||'', w.actual_item||'', resultLabels[w.result]||'', w.handler||'', w.notes||''].join('\t'));
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Da copy bao cao vao clipboard. Paste vao Excel hoac Google Sheets.')).catch(()=>alert(lines.join('\n')));
+}
+
+// ==================== END WRONG ORDER ====================
 
 function copyDesc() {
   const text = document.getElementById('claudeDescText')?.value;
@@ -2345,6 +2651,7 @@ function showPage(name, evt) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if(evt) evt.currentTarget.classList.add('active');
+  if(name === 'wrong-order') renderWrongOrders();
 }
 
 // PARSE SHOPEE URL
