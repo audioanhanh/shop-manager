@@ -1644,6 +1644,8 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
       // Thu 5: lay theo thu tu index neu khong match duoc
       if(!shop && index < state.shops.length) shop = state.shops[index];
 
+      if(!shop) console.warn('Khong match duoc shop:', item.shop_id, '| Danh sach shop:', state.shops.map(s=>s.name).join(', '));
+
       if(shop && item.title) {
         const titleEl = document.getElementById(`pt-title-${shop.id}`);
         const kwEl = document.getElementById(`pt-kw-${shop.id}`);
@@ -1659,9 +1661,13 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
     });
 
     // Show success message
+    progress.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '✨ Claude goi y tieu de';
+
     const successDiv = document.createElement('div');
     successDiv.style.cssText = 'background:#34d39922;border:1px solid #34d39944;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--green);margin-top:8px';
-    successDiv.textContent = '✓ Claude da goi y xong ' + result.titles.length + ' tieu de. Kiem tra lai va bam "Luu tat ca" khi ok.';
+    successDiv.textContent = '✓ Claude da goi y xong ' + result.titles.length + ' tieu de (' + matched + ' shop khop). Kiem tra lai va bam "Luu tat ca" khi ok.';
     document.getElementById('claudeProgress').after(successDiv);
     setTimeout(()=>successDiv.remove(), 5000);
 
