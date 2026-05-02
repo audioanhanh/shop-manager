@@ -1436,6 +1436,15 @@ Lua chon tu khoa chinh phu hop nhat voi cach khach hay tim kiem san pham nay.`;
     });
 
     const data = await response.json();
+
+    // Kiem tra loi tu Anthropic
+    if(data.error) {
+      throw new Error('Anthropic API loi: ' + (data.error.message || JSON.stringify(data.error)));
+    }
+    if(!data.content || !data.content[0]) {
+      throw new Error('Khong co content. Data: ' + JSON.stringify(data).slice(0,200));
+    }
+
     let text = data.content?.[0]?.text || '';
 
     // Clean up: dam bao khong co markdown va khong co qua nhieu dong trong
@@ -1562,6 +1571,18 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
 
     const data = await response.json();
     const text = data.content?.[0]?.text || '';
+
+    // Debug: log ra de kiem tra
+    console.log('Claude response status:', response.status);
+    console.log('Claude response data:', JSON.stringify(data).slice(0, 500));
+
+    // Kiem tra loi tu Anthropic
+    if(data.error) {
+      throw new Error('Anthropic API loi: ' + (data.error.message || JSON.stringify(data.error)));
+    }
+    if(!data.content || !data.content[0]) {
+      throw new Error('Khong co content trong response. Data: ' + JSON.stringify(data).slice(0,200));
+    }
 
     // Parse JSON
     const jsonMatch = text.match(/\{[\s\S]*\}/);
