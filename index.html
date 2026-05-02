@@ -1595,6 +1595,7 @@ KHONG viet gi them, KHONG giai thich, CHI tra ve danh sach ${state.shops.length}
     const normalizedText = text.replace(/\\n/g, '\n');
     const lines = normalizedText.split('\n').filter(l=>l.trim()&&l.includes('|'));
     console.log('So dong parse duoc:', lines.length, '| Noi dung:', lines.slice(0,3).join(' / '));
+    console.log('Tat ca ten shop Claude tra ve:', lines.map(l=>l.split('|')[0]).join(', '));
     
     if(lines.length === 0) {
       throw new Error('Claude khong tra ve dung dinh dang. Raw: ' + text.slice(0,200));
