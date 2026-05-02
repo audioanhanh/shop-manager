@@ -1585,17 +1585,41 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
       throw new Error('Khong co content trong response. Data: ' + JSON.stringify(data).slice(0,200));
     }
 
-    // Parse JSON - lam sach truoc khi parse
+    // Parse JSON - lam sach manh hon
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if(!jsonMatch) throw new Error('Khong doc duoc ket qua tu Claude');
 
-    // Lam sach JSON: xoa ky tu xuong dong ben trong string values
-    let cleanJson = jsonMatch[0]
-      .replace(/:\s*"([^"]*?)"/g, (match, p1) => {
-        return ': "' + p1.replace(/\n/g, ' ').replace(/\r/g, '') + '"';
-      });
-
-    const result = JSON.parse(cleanJson);
+    let rawJson = jsonMatch[0];
+    
+    // Cach 1: parse truc tiep
+    let result;
+    try {
+      result = JSON.parse(rawJson);
+    } catch(e) {
+      // Cach 2: dung Function de parse JSON co ky tu dac biet
+      try {
+        // Xoa tat ca newline trong value strings
+        rawJson = rawJson.replace(/("(?:[^"\\]|\\.)*")/g, (match) => {
+          return match.replace(/\n/g, '\\n').replace(/\r/g, '');
+        });
+        result = JSON.parse(rawJson);
+      } catch(e2) {
+        // Cach 3: extract tung item bang regex
+        const items = [];
+        const itemRegex = /"shop_id"\s*:\s*"([^"]+)"[\s\S]*?"title"\s*:\s*"([^"]+)"[\s\S]*?"keywords"\s*:\s*\[([^\]]*)\]/g;
+        let m;
+        while((m = itemRegex.exec(text)) !== null) {
+          const kws = m[3].match(/"([^"]+)"/g)||[];
+          items.push({
+            shop_id: m[1],
+            title: m[2],
+            keywords: kws.map(k=>k.replace(/"/g,''))
+          });
+        }
+        if(items.length === 0) throw new Error('Khong the doc ket qua. Raw: ' + text.slice(0,300));
+        result = { titles: items };
+      }
+    }
     if(!result.titles || !Array.isArray(result.titles)) throw new Error('Dinh dang ket qua khong hop le');
 
     // Map ket qua vao cac o
