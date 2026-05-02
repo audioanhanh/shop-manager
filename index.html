@@ -1515,32 +1515,25 @@ async function claudeSuggestTitles() {
     .filter(t=>t.product_id===currentProductId&&t.title)
     .map(t=>t.title).join(', ');
 
-  const systemPrompt = `Ban la chuyen gia SEO Shopee va TikTok Shop Viet Nam voi hon 5 nam kinh nghiem toi uu tieu de san pham.
+  const systemPrompt = `Ban la chuyen gia SEO Shopee va TikTok Shop Viet Nam.
 
-NHIEM VU: Tao tieu de san pham rieng biet cho tung shop, chuan SEO, phu hop thi truong Viet Nam.
+NHIEM VU: Tao tieu de san pham rieng biet cho tung shop, chuan SEO.
 
-QUY TAC BAT BUOC:
-1. Moi shop PHAI co tu khoa chinh KHAC NHAU hoan toan - tranh canh tranh noi bo
-2. Tieu de Shopee: 60-120 ky tu, tu khoa chinh dau tien, tieng Viet co dau day du
-3. Tieu de TikTok: 40-80 ky tu, tu nhien, gan gui, co the them cam xuc nhe
-4. Dua vao cach khach hang THUC SU goi san pham khi tim kiem
-5. Khong spam tu khoa, khong lap lai qua nhieu
-6. Khong dung ten thuong hieu lon (Nike, Adidas...) neu khong phai dai ly chinh thuc
-7. Khong cac cum tu: "100% chinh hang", "hang doc quyen", "giam ngay X kg", "trang da ngay", "chua benh"
-8. Khong tu lien quan chinh tri, ton giao, bao luc, co bac, dau tu tai chinh
-9. Khong dung ky tu dac biet la: !, @, #, $, %
-10. Khong viet tat kho hieu, khong dung tieng nuoc ngoai tru ten quoc te pho bien
+QUY TAC:
+1. Moi shop co tu khoa chinh KHAC NHAU
+2. Shopee: 60-120 ky tu, tu khoa chinh dau tien, tieng Viet co dau
+3. TikTok: 40-80 ky tu, tu nhien, gan gui
+4. Khong spam tu khoa, khong ten thuong hieu lon, khong ky tu dac biet
 
-CACH PHAN BO TU KHOA:
-- Shop Shopee: nhom theo goc do san pham (chat lieu, phong cach, dip mac, doi tuong, tinh nang)
-- Shop TikTok: nhom theo trend, cam xuc, nhu cau cu the
+TRA VE CHINH XAC THEO FORMAT NAY (moi shop 1 dong, dung dau | de phan cach):
+SHOP_NAME|tieu de san pham|tu khoa 1,tu khoa 2,tu khoa 3
+SHOP_NAME_2|tieu de san pham 2|tu khoa 1,tu khoa 2
 
-QUAN TRONG - DINH DANG JSON:
-- Tra ve DUNG FORMAT JSON ben duoi, KHONG CO GI KHAC
-- Moi title va keywords PHAI VIET TREN 1 DONG, KHONG XUONG DONG GIUA CHUOI
-- shop_id phai la ten shop chinh xac nhu trong danh sach
+Vi du:
+HL-ADAudio|La Tron 72mm Titan Thay The Loa Treble CCAW|la tron titan,thay the loa treble,72mm
+HL-AnhAnhAudio|Mang Treble 72.2mm Titan Day Dong|mang treble titan,72.2mm,day dong ccaw
 
-{"titles":[{"shop_id":"TEN_SHOP","title":"Tieu de tren 1 dong","keywords":["tu khoa 1","tu khoa 2"]},{"shop_id":"TEN_SHOP_2","title":"Tieu de shop 2","keywords":["tu khoa"]}]}`;
+CHI TRA VE DANH SACH, KHONG CO GI THEM.`;
 
   const userPrompt = `San pham: ${product.name}
 SKU: ${product.sku}
@@ -1583,91 +1576,52 @@ Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JS
       throw new Error('Khong co content trong response. Data: ' + JSON.stringify(data).slice(0,200));
     }
 
-    // Parse JSON - lam sach manh hon
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('Khong doc duoc ket qua tu Claude');
+    progressText.textContent = 'Dang dien tieu de vao cac o...';
 
-    let rawJson = jsonMatch[0];
-    
-    // Cach 1: parse truc tiep
-    let result;
-    try {
-      result = JSON.parse(rawJson);
-    } catch(e) {
-      // Cach 2: dung Function de parse JSON co ky tu dac biet
-      try {
-        // Xoa tat ca newline trong value strings
-        rawJson = rawJson.replace(/("(?:[^"\\]|\\.)*")/g, (match) => {
-          return match.replace(/\n/g, '\\n').replace(/\r/g, '');
-        });
-        result = JSON.parse(rawJson);
-      } catch(e2) {
-        // Cach 3: extract tung item bang regex
-        const items = [];
-        const itemRegex = /"shop_id"\s*:\s*"([^"]+)"[\s\S]*?"title"\s*:\s*"([^"]+)"[\s\S]*?"keywords"\s*:\s*\[([^\]]*)\]/g;
-        let m;
-        while((m = itemRegex.exec(text)) !== null) {
-          const kws = m[3].match(/"([^"]+)"/g)||[];
-          items.push({
-            shop_id: m[1],
-            title: m[2],
-            keywords: kws.map(k=>k.replace(/"/g,''))
-          });
-        }
-        if(items.length === 0) throw new Error('Khong the doc ket qua. Raw: ' + text.slice(0,300));
-        result = { titles: items };
-      }
-    }
-    if(!result.titles || !Array.isArray(result.titles)) throw new Error('Dinh dang ket qua khong hop le');
-
-    // Map ket qua vao cac o
+    // Parse format: SHOP_NAME|title|keywords (moi shop 1 dong)
     let matched = 0;
-    result.titles.forEach((item, index) => {
-      let shop = null;
-      
-      // Thu 1: match bang shop_id chinh xac
-      if(item.shop_id) shop = state.shops.find(s=>s.id===item.shop_id);
-      
-      // Thu 2: match bang ten chinh xac
-      if(!shop && item.shop_id) shop = state.shops.find(s=>s.name===item.shop_id);
-      
-      // Thu 3: match bang ten khong phan biet hoa thuong
-      if(!shop && item.shop_id) shop = state.shops.find(s=>
-        s.name.toLowerCase().trim()===item.shop_id.toLowerCase().trim()
-      );
-      
-      // Thu 4: match bang shop_name neu co
-      if(!shop && item.shop_name) shop = state.shops.find(s=>
-        s.name.toLowerCase().trim()===item.shop_name.toLowerCase().trim()
-      );
-      
-      // Thu 5: lay theo thu tu index neu khong match duoc
+    const lines = text.split('\n').filter(l=>l.trim()&&l.includes('|'));
+    
+    if(lines.length === 0) {
+      throw new Error('Claude khong tra ve dung dinh dang. Raw: ' + text.slice(0,200));
+    }
+
+    lines.forEach((line, index) => {
+      const parts = line.split('|');
+      if(parts.length < 2) return;
+      const shopName = parts[0].trim();
+      const title = parts[1].trim();
+      const keywords = parts[2] ? parts[2].trim() : '';
+
+      let shop = state.shops.find(s=>s.name===shopName);
+      if(!shop) shop = state.shops.find(s=>s.name.toLowerCase()===shopName.toLowerCase());
+      if(!shop) shop = state.shops.find(s=>shopName.includes(s.name)||s.name.includes(shopName));
       if(!shop && index < state.shops.length) shop = state.shops[index];
 
-      if(!shop) console.warn('Khong match duoc shop:', item.shop_id, '| Danh sach shop:', state.shops.map(s=>s.name).join(', '));
+      if(!shop) { console.warn('Khong match shop:', shopName); return; }
 
-      if(shop && item.title) {
+      if(title) {
         const titleEl = document.getElementById(`pt-title-${shop.id}`);
         const kwEl = document.getElementById(`pt-kw-${shop.id}`);
         if(titleEl) {
-          titleEl.value = item.title;
+          titleEl.value = title;
           titleEl.style.borderColor = 'var(--accent)';
           titleEl.style.background = '#4f7fff08';
           setTimeout(()=>{titleEl.style.borderColor='';titleEl.style.background='';}, 3000);
           matched++;
         }
-        if(kwEl && item.keywords) kwEl.value = Array.isArray(item.keywords)?item.keywords.join(', '):item.keywords;
+        if(kwEl) kwEl.value = keywords;
       }
     });
 
-    // Show success message
+    // Show success
     progress.style.display = 'none';
     btn.disabled = false;
     btn.textContent = '✨ Claude goi y tieu de';
 
     const successDiv = document.createElement('div');
     successDiv.style.cssText = 'background:#34d39922;border:1px solid #34d39944;border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--green);margin-top:8px';
-    successDiv.textContent = '✓ Claude da goi y xong ' + result.titles.length + ' tieu de (' + matched + ' shop khop). Kiem tra lai va bam "Luu tat ca" khi ok.';
+    successDiv.textContent = '✓ Claude da goi y xong ' + matched + '/' + state.shops.length + ' shop. Kiem tra lai va bam "Luu tat ca" khi ok.';
     document.getElementById('claudeProgress').after(successDiv);
     setTimeout(()=>successDiv.remove(), 5000);
 
