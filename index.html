@@ -1129,6 +1129,18 @@ async function loadWorkCategories() {
 async function loadProductTitles() {
   const { data } = await sb.from('product_shop_titles').select('*');
   state.productTitles = data || [];
+  // Load description vao shopDescriptions
+  if(currentProductId) {
+    (data||[]).filter(t=>t.product_id===currentProductId).forEach(t=>{
+      if(t.description) {
+        shopDescriptions[t.shop_id] = t.description;
+        const ta = document.getElementById(`desc-text-${t.shop_id}`);
+        if(ta) ta.value = t.description;
+        const btn = document.getElementById(`desc-btn-${t.shop_id}`);
+        if(btn){ btn.style.background='#4f7fff22'; btn.style.borderColor='var(--accent)'; }
+      }
+    });
+  }
 }
 
 // HELPERS
@@ -1387,8 +1399,36 @@ function copyShopDesc(shopId) {
   });
 }
 
+function expandDescPopup(shopId) {
+  const shop = state.shops.find(s=>s.id===shopId);
+  const ta = document.getElementById(`desc-text-${shopId}`);
+  const currentDesc = ta?.value || shopDescriptions[shopId] || '';
+
+  // Dong popup nho
+  const popup = document.getElementById(`desc-popup-${shopId}`);
+  if(popup) popup.style.display = 'none';
+
+  // Mo modal lon
+  const modal = document.createElement('div');
+  modal.id = 'desc-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:#0009;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;padding:20px;gap:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:14px;font-weight:600;color:var(--text)">Mô tả — ${shop?.name||''}</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="copyShopDesc('${shopId}')" id="copy-desc-${shopId}" style="background:var(--accent);border:none;color:#fff;padding:6px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Copy</button>
+          <button onclick="document.getElementById('desc-modal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:6px 12px;border-radius:var(--r);font-size:12px;cursor:pointer">✕ Đóng</button>
+        </div>
+      </div>
+      <textarea id="desc-text-${shopId}" style="flex:1;min-height:500px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;color:var(--text);font-size:13px;font-family:inherit;resize:none;line-height:1.7">${currentDesc}</textarea>
+      <div style="font-size:11px;color:var(--text3)">✏️ Có thể chỉnh sửa trực tiếp. Bấm "Lưu" bên phải dòng shop để lưu lại.</div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+}
+
 function toggleDescUsed(shopId) {
-  shopDescUsed[shopId] = !shopDescUsed[shopId];
   const btn = document.getElementById(`used-btn-${shopId}`);
   if(btn){
     btn.innerHTML = shopDescUsed[shopId]?'✅':'☐';
@@ -1748,11 +1788,13 @@ function renderProductTitlesPage() {
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <span style="font-size:12px;font-weight:600;color:var(--text)">${s.name}</span>
               <div style="display:flex;gap:6px">
+                <button onclick="expandDescPopup('${s.id}')" title="Mo rong" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer">⛶</button>
                 <button onclick="copyShopDesc('${s.id}')" id="copy-desc-${s.id}" style="background:var(--accent);border:none;color:#fff;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Copy</button>
                 <button onclick="toggleDescPopup('${s.id}')" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer">✕</button>
               </div>
             </div>
-            <textarea id="desc-text-${s.id}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px;color:var(--text);font-size:11px;font-family:inherit;height:200px;resize:vertical;line-height:1.6" readonly placeholder="Chua co mo ta. Tick chon shop nay roi bam 'Tao mo ta' de Claude viet.">${desc}</textarea>
+            <textarea id="desc-text-${s.id}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px;color:var(--text);font-size:11px;font-family:inherit;height:200px;resize:vertical;line-height:1.6" placeholder="Chua co mo ta. Tick chon shop nay roi bam 'Tao mo ta' de Claude viet, hoac tu nhap tay.">${desc}</textarea>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">✏️ Co the chinh sua truc tiep. Bam "Luu" ben phai de luu lai.</div>
           </div>
         </div>
         <div>
@@ -1819,19 +1861,21 @@ function renderProductTitlesPage() {
 
 async function saveProductTitle(shopId) {
   const titleEl = document.getElementById(`pt-title-${shopId}`);
-  const kwEl = document.getElementById(`pt-kw-${shopId}`);
   if(!titleEl) return;
   const title = titleEl.value.trim();
-  const keywords = kwEl?.value?.trim() ? kwEl.value.trim().split(',').map(k=>k.trim()).filter(Boolean) : [];
+  const keywords = [];
+  // Lay mo ta tu popup hoac shopDescriptions
+  const descEl = document.getElementById(`desc-text-${shopId}`);
+  const description = descEl?.value?.trim() || shopDescriptions[shopId] || '';
   const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===shopId);
   if(existing) {
-    await sb.from('product_shop_titles').update({title, keywords, updated_at:new Date().toISOString()}).eq('id',existing.id);
+    await sb.from('product_shop_titles').update({title, keywords, description, updated_at:new Date().toISOString()}).eq('id',existing.id);
   } else {
-    if(title) await sb.from('product_shop_titles').insert({product_id:currentProductId, shop_id:shopId, title, keywords});
+    if(title||description) await sb.from('product_shop_titles').insert({product_id:currentProductId, shop_id:shopId, title, keywords, description});
   }
   await loadProductTitles();
   renderProducts();
-  const btn = document.querySelector(`#pt-title-${shopId}`)?.closest('div[style*="grid"]')?.querySelector('button');
+  const btn = document.querySelector(`#pt-title-${shopId}`)?.closest('div[style*="grid"]')?.querySelector('button.btn-primary');
   if(btn){btn.textContent='✓ Xong';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent='Luu';btn.style.background='';},1500);}
 }
 
