@@ -1750,6 +1750,14 @@ async function openProductTitles(productId) {
   if(!product) return;
   document.getElementById('ptPageTitle').textContent = `${product.name} (${product.sku})`;
   document.getElementById('ptPageSub').textContent = `Dat tieu de rieng cho ${state.shops.length} shop`;
+
+  // Load description tu Supabase vao shopDescriptions
+  shopDescriptions = {};
+  shopDescUsed = {};
+  state.productTitles
+    .filter(t=>t.product_id===productId && t.description)
+    .forEach(t=>{ shopDescriptions[t.shop_id] = t.description; });
+
   renderProductTitlesPage();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-product-titles').classList.add('active');
@@ -1861,22 +1869,16 @@ function renderProductTitlesPage() {
 
 async function saveProductTitle(shopId) {
   const titleEl = document.getElementById(`pt-title-${shopId}`);
-  if(!titleEl) { console.log('Khong tim thay titleEl cho shop:', shopId); return; }
+  if(!titleEl) return;
   const title = titleEl.value.trim();
   const keywords = [];
   const descEl = document.getElementById(`desc-text-${shopId}`);
   const description = descEl?.value?.trim() || shopDescriptions[shopId] || '';
-  console.log('Saving shop:', shopId, '| title:', title, '| desc length:', description.length);
   const existing = state.productTitles.find(t=>t.product_id===currentProductId&&t.shop_id===shopId);
-  console.log('Existing record:', existing?.id || 'none');
   if(existing) {
-    const {error} = await sb.from('product_shop_titles').update({title, keywords, description, updated_at:new Date().toISOString()}).eq('id',existing.id);
-    console.log('Update error:', error);
+    await sb.from('product_shop_titles').update({title, keywords, description, updated_at:new Date().toISOString()}).eq('id',existing.id);
   } else {
-    if(title||description) {
-      const {error} = await sb.from('product_shop_titles').insert({product_id:currentProductId, shop_id:shopId, title, keywords, description});
-      console.log('Insert error:', error);
-    }
+    if(title||description) await sb.from('product_shop_titles').insert({product_id:currentProductId, shop_id:shopId, title, keywords, description});
   }
   await loadProductTitles();
   renderProducts();
