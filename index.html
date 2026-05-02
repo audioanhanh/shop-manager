@@ -1535,17 +1535,28 @@ HL-AnhAnhAudio|Mang Treble 72.2mm Titan Day Dong|mang treble titan,72.2mm,day do
 
 CHI TRA VE DANH SACH, KHONG CO GI THEM.`;
 
+  const shopList = state.shops.map(s=>
+    `${s.name}|${s.platform==='shopee'?'Shopee':'TikTok'}`
+  ).join('\n');
+
   const userPrompt = `San pham: ${product.name}
 SKU: ${product.sku}
 Mo ta: ${product.description}
 ${product.category?'Danh muc: '+product.category:''}
 
-Danh sach ${state.shops.length} shop can tao tieu de:
-${shopInfo}
+DANH SACH ${state.shops.length} SHOP (dung chinh xac ten nay):
+${shopList}
 
-${existingTitles?'Cac tieu de da ton tai (tranh trung tu khoa chinh): '+existingTitles:''}
+${existingTitles?'Tieu de da co (tranh trung tu khoa): '+existingTitles:''}
 
-Hay tao ${state.shops.length} tieu de, moi shop mot tieu de khac nhau. Tra ve JSON voi dung so shop.`;
+Tao tieu de cho tung shop. Tra ve CHINH XAC theo format sau, moi shop 1 dong:
+TenShop|Tieu de san pham|tu khoa 1,tu khoa 2,tu khoa 3
+
+Vi du:
+HL-ADAudio|La Tron 72mm Titan Thay The Loa Treble|la tron titan,thay the loa treble,72mm
+HL-AnhAnhAudio|Mang Treble 72.2mm Titan Day Dong|mang treble titan,72.2mm ccaw
+
+KHONG viet gi them, KHONG giai thich, CHI tra ve danh sach ${state.shops.length} dong.`;
 
   try {
     progressText.textContent = 'Claude dang tao tieu de cho ' + state.shops.length + ' shop...';
