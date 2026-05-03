@@ -604,8 +604,55 @@ tr:hover td { background: var(--bg3); }
           Them chien luoc
         </button>
       </div>
+
+      <!-- Dashboard Sapo -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Dashboard xuat kho — Bao cao Sapo</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Upload file so kho Sapo (.xlsx) de cap nhat du lieu</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-input" id="sapoPeriod" style="width:130px" onchange="renderSapoDashboard()">
+              <option value="30">30 ngay qua</option>
+              <option value="7">7 ngay qua</option>
+              <option value="month">Thang nay</option>
+              <option value="last_month">Thang truoc</option>
+            </select>
+            <label style="background:var(--accent);color:#fff;padding:7px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+              📤 Upload file Sapo
+              <input type="file" accept=".xlsx" onchange="uploadSapoFile(this)" style="display:none"/>
+            </label>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="sapoStats">
+          <div class="stat-card"><div class="stat-label">Tong xuat kho</div><div class="stat-value" id="sapo-total">--</div></div>
+          <div class="stat-card"><div class="stat-label">SKU ban chay nhat</div><div class="stat-value" style="font-size:13px" id="sapo-top-sku">--</div></div>
+          <div class="stat-card"><div class="stat-label">Kho Tram Anh</div><div class="stat-value" id="sapo-ta">--</div></div>
+          <div class="stat-card"><div class="stat-label">Kho Hoang Long</div><div class="stat-value" id="sapo-hl">--</div></div>
+        </div>
+
+        <!-- Bieu do + bang -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- Bieu do theo ngay -->
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Xuat kho theo ngay</div>
+            <div id="sapoChartWrap" style="height:160px;display:flex;align-items:flex-end;gap:3px;overflow-x:auto"></div>
+          </div>
+          <!-- Top SKU -->
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top SKU xuat nhieu nhat</div>
+            <div id="sapoTopSku" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+
+        <div id="sapoUploadStatus" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
+      </div>
+
       <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
-        <!-- Panel trai: danh sach chien luoc -->
+        <!-- Panel trai -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:0">
           <div style="padding:10px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Chien luoc</div>
           <div id="strategyList" style="padding:6px"></div>
@@ -613,7 +660,7 @@ tr:hover td { background: var(--bg3); }
             <button onclick="openAddStrategy()" style="width:100%;background:transparent;border:1px dashed var(--border);border-radius:var(--r);padding:8px;cursor:pointer;color:var(--text3);font-size:12px;${canDo('manage')?'':'display:none'}">+ Them</button>
           </div>
         </div>
-        <!-- Panel phai: noi dung chien luoc -->
+        <!-- Panel phai -->
         <div id="strategyContent">
           <div style="color:var(--text3);font-size:14px;padding:40px;text-align:center">Chon 1 chien luoc o ben trai de xem noi dung</div>
         </div>
@@ -1314,7 +1361,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies(), loadSapoSales()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -1825,6 +1872,182 @@ function toggleComplaintShop(el, shopId) {
   el.dataset.selected = 'true';
   document.getElementById('complaintShop').value = shopId;
 }
+
+// ==================== SAPO DASHBOARD ====================
+let state_sapoSales = [];
+
+async function loadSapoSales() {
+  const { data } = await sb.from('sapo_sales').select('*').order('date', {ascending:false});
+  state_sapoSales = data || [];
+}
+
+async function uploadSapoFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const status = document.getElementById('sapoUploadStatus');
+  status.textContent = '⏳ Dang xu ly file...';
+  status.style.color = 'var(--text2)';
+
+  try {
+    const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+
+    // Tim header row (row co chu "STT")
+    let headerIdx = rows.findIndex(r => r.some(c=>String(c||'').trim()==='STT'));
+    if(headerIdx < 0) throw new Error('Khong tim thay header trong file');
+    const headers = rows[headerIdx].map(h=>String(h||'').trim());
+
+    // Tim vi tri cac cot can thiet
+    const colStt = headers.indexOf('STT');
+    const colDate = headers.findIndex(h=>h.includes('Ngày chứng từ')||h.includes('Ngay chung tu'));
+    const colSource = headers.findIndex(h=>h.includes('Nguồn')||h.includes('Nguon'));
+    const colCode = headers.findIndex(h=>h.includes('Mã chứng từ')||h.includes('Ma chung tu'));
+    const colName = headers.findIndex(h=>h.includes('Tên phiên bản')||h.includes('Ten phien ban'));
+    const colSku = headers.findIndex(h=>h==='SKU');
+    const colQtyOut = headers.findIndex(h=>h.includes('Số lượng xuất kho')||h.includes('So luong xuat kho'));
+    const colWarehouse = headers.findIndex(h=>h.includes('Kho hàng')||h.includes('Kho hang'));
+
+    if(colQtyOut < 0) throw new Error('Khong tim thay cot "So luong xuat kho"');
+
+    // Loc va chuan bi data
+    const TARGET_SOURCE = 'Xuất kho giao hàng cho khách/shipper';
+    const dataRows = rows.slice(headerIdx+1).filter(r => {
+      const source = String(r[colSource]||'').trim();
+      const stt = r[colStt];
+      return source === TARGET_SOURCE && stt && !isNaN(Number(stt));
+    });
+
+    if(dataRows.length === 0) throw new Error('Khong co du lieu xuat kho trong file');
+
+    // Upsert vao Supabase theo ma chung tu (tranh trung)
+    let inserted = 0, updated = 0;
+    const batchSize = 20;
+    for(let i=0; i<dataRows.length; i+=batchSize) {
+      const batch = dataRows.slice(i,i+batchSize).map(r => {
+        const rawDate = r[colDate];
+        let dateStr = null;
+        if(rawDate) {
+          // Format: "03/05/2026 11:29:42"
+          const parts = String(rawDate).split(' ')[0].split('/');
+          if(parts.length===3) dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return {
+          order_code: String(r[colCode]||'').trim() || null,
+          sold_at: rawDate ? new Date(String(rawDate).replace(/(\d+)\/(\d+)\/(\d+)/,'$3-$2-$1')).toISOString() : null,
+          date: dateStr,
+          product_name: String(r[colName]||'').trim()||null,
+          sku: String(r[colSku]||'').trim()||null,
+          qty_out: Number(r[colQtyOut])||0,
+          warehouse: String(r[colWarehouse]||'').trim()||null
+        };
+      }).filter(r=>r.order_code);
+
+      if(batch.length > 0) {
+        await sb.from('sapo_sales').upsert(batch, {onConflict:'order_code'});
+        inserted += batch.length;
+      }
+    }
+
+    await loadSapoSales();
+    renderSapoDashboard();
+    status.textContent = `✓ Da xu ly ${dataRows.length} dong, cap nhat ${inserted} ban ghi. File: ${file.name}`;
+    status.style.color = 'var(--green)';
+  } catch(err) {
+    status.textContent = '❌ Loi: ' + err.message;
+    status.style.color = 'var(--red)';
+    console.error(err);
+  }
+  input.value = '';
+}
+
+function getFilteredSapoData() {
+  const period = document.getElementById('sapoPeriod')?.value || '30';
+  const now = new Date();
+  return state_sapoSales.filter(r => {
+    if(!r.date) return false;
+    const d = new Date(r.date);
+    if(period === '7') {
+      const cutoff = new Date(now); cutoff.setDate(now.getDate()-7);
+      return d >= cutoff;
+    }
+    if(period === '30') {
+      const cutoff = new Date(now); cutoff.setDate(now.getDate()-30);
+      return d >= cutoff;
+    }
+    if(period === 'month') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(period === 'last_month') {
+      const lm = new Date(now.getFullYear(),now.getMonth()-1,1);
+      return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear();
+    }
+    return true;
+  });
+}
+
+function renderSapoDashboard() {
+  const data = getFilteredSapoData();
+
+  // Stats
+  const total = data.reduce((s,r)=>s+r.qty_out,0);
+  const ta = data.filter(r=>r.warehouse&&r.warehouse.includes('Trâm Anh')).reduce((s,r)=>s+r.qty_out,0);
+  const hl = data.filter(r=>r.warehouse&&r.warehouse.includes('Hoàng Long')).reduce((s,r)=>s+r.qty_out,0);
+
+  // Top SKU
+  const skuMap = {};
+  data.forEach(r=>{ if(r.sku) skuMap[r.sku]=(skuMap[r.sku]||0)+r.qty_out; });
+  const topSkus = Object.entries(skuMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topSku = topSkus[0]?.[0] || '--';
+
+  document.getElementById('sapo-total').textContent = total;
+  document.getElementById('sapo-top-sku').textContent = topSku;
+  document.getElementById('sapo-ta').textContent = ta;
+  document.getElementById('sapo-hl').textContent = hl;
+
+  // Bieu do theo ngay
+  const dayMap = {};
+  data.forEach(r=>{ if(r.date) dayMap[r.date]=(dayMap[r.date]||0)+r.qty_out; });
+  const days = Object.keys(dayMap).sort().slice(-30);
+  const maxVal = Math.max(...days.map(d=>dayMap[d]),1);
+  const chartWrap = document.getElementById('sapoChartWrap');
+  if(chartWrap) {
+    chartWrap.innerHTML = days.length === 0
+      ? `<div style="color:var(--text3);font-size:12px;padding:20px">Chua co du lieu</div>`
+      : days.map(d => {
+          const val = dayMap[d];
+          const h = Math.round((val/maxVal)*140);
+          const label = d.slice(5); // MM-DD
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:18px" title="${d}: ${val}">
+            <span style="font-size:9px;color:var(--text3)">${val}</span>
+            <div style="background:var(--accent);border-radius:2px 2px 0 0;width:100%;height:${h}px;opacity:.8"></div>
+            <span style="font-size:9px;color:var(--text3);writing-mode:vertical-rl;transform:rotate(180deg);max-height:30px;overflow:hidden">${label}</span>
+          </div>`;
+        }).join('');
+  }
+
+  // Top SKU bars
+  const topSkuEl = document.getElementById('sapoTopSku');
+  if(topSkuEl) {
+    const maxQty = topSkus[0]?.[1]||1;
+    topSkuEl.innerHTML = topSkus.length === 0
+      ? `<div style="color:var(--text3);font-size:12px">Chua co du lieu</div>`
+      : topSkus.map(([sku,qty])=>{
+          const product = state.products.find(p=>p.sku===sku);
+          const pct = Math.round((qty/maxQty)*100);
+          return `<div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+              <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px" title="${product?.name||sku}">${product?.name||sku}</span>
+              <span style="font-weight:600;color:var(--text);flex-shrink:0;margin-left:6px">${qty}</span>
+            </div>
+            <div style="background:var(--bg4);border-radius:3px;height:6px">
+              <div style="background:var(--accent);border-radius:3px;height:6px;width:${pct}%"></div>
+            </div>
+          </div>`;
+        }).join('');
+  }
+}
+// ==================== END SAPO DASHBOARD ====================
 
 // ==================== CHIEN LUOC ====================
 let state_strategies = [];
@@ -3355,7 +3578,7 @@ function showPage(name, evt) {
   if(evt) evt.currentTarget.classList.add('active');
   if(name === 'wrong-order') renderWrongOrders();
   if(name === 'worklog') initWorklog();
-  if(name === 'strategy') { renderStrategyList(); renderStrategyContent(); }
+  if(name === 'strategy') { renderStrategyList(); renderStrategyContent(); renderSapoDashboard(); }
 }
 
 // PARSE SHOPEE URL
