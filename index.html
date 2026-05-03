@@ -592,22 +592,40 @@ tr:hover td { background: var(--bg3); }
     <div class="page" id="page-worklog">
       <div class="page-header">
         <div>
-          <div class="page-title">San luong Van hanh</div>
-          <div class="page-sub">Nhan vien tu ghi nhan cong viec trong ngay</div>
+          <div class="page-title">San luong</div>
+          <div class="page-sub">Ghi nhan san luong hang ngay theo dau viec</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('worklogModal')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Ghi nhan cong viec
+        <button class="btn btn-ghost" id="manageWorkItemsBtn" onclick="toggleManageWorkItems()" style="border-color:#2a4070;color:var(--text2)">
+          ⚙️ Quan ly dau viec
         </button>
       </div>
-      <div id="worklogStats" class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px"></div>
-      <div class="card">
-        <div class="card-title">Hom nay</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Loai cong viec</th><th>So luong</th><th>Don vi</th><th>Gio ghi nhan</th><th>Ghi chu</th></tr></thead>
-            <tbody id="worklogTable"><tr><td colspan="5"><div class="empty"><div class="empty-text">Chua co du lieu hom nay</div></div></td></tr></tbody>
-          </table>
+
+      <!-- Panel quan ly dau viec (admin/Long) -->
+      <div id="manageWorkItemsPanel" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Quan ly dau viec</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddWorkItem()">+ Them dau viec</button>
+        </div>
+        <div id="workItemManageList" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="worklogStats"></div>
+
+      <!-- Dau viec nhap lieu -->
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Nhap san luong hom nay</div>
+      <div id="workItemInputList" style="display:flex;flex-direction:column;gap:8px"></div>
+
+      <!-- Lich su hom nay -->
+      <div style="margin-top:20px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Lich su hom nay</div>
+        <div class="card" style="margin:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Dau viec</th><th>So luong</th><th>Gio ghi nhan</th><th>Nguoi nhap</th><th></th></tr></thead>
+              <tbody id="worklogTable"><tr><td colspan="5"><div class="empty"><div class="empty-text">Chua co du lieu hom nay</div></div></td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1709,6 +1727,204 @@ function toggleComplaintShop(el, shopId) {
   document.getElementById('complaintShop').value = shopId;
 }
 
+// ==================== SAN LUONG ====================
+let state_workItems = [];
+let state_workLogsDaily = [];
+
+async function loadWorkItemsNew() {
+  const { data } = await sb.from('work_items').select('*').order('sort_order');
+  state_workItems = data || [];
+}
+
+async function loadWorkLogsDaily() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('work_logs_daily').select('*').eq('date', today).order('logged_at', {ascending:false});
+  state_workLogsDaily = data || [];
+}
+
+async function initWorklog() {
+  await Promise.all([loadWorkItemsNew(), loadWorkLogsDaily()]);
+  renderWorkItemInputs();
+  renderWorklogTable();
+  renderWorklogStats();
+}
+
+function renderWorkItemInputs() {
+  const list = document.getElementById('workItemInputList');
+  if(!list) return;
+  if(state_workItems.length === 0) {
+    list.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:12px">Chua co dau viec nao. Admin them dau viec o goc tren.</div>`;
+    return;
+  }
+  list.innerHTML = state_workItems.filter(w=>w.is_active).map(w=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--text);min-width:180px">${w.name}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="adjustQty('wi-qty-${w.id}',-1)" style="background:var(--bg4);border:1px solid var(--border);border-radius:var(--r);width:30px;height:30px;cursor:pointer;color:var(--text);font-size:16px;display:flex;align-items:center;justify-content:center">−</button>
+        <input type="number" id="wi-qty-${w.id}" value="0" min="0" style="width:70px;text-align:center;font-size:15px;font-weight:600;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:4px 8px;color:var(--text)"/>
+        <button onclick="adjustQty('wi-qty-${w.id}',1)" style="background:var(--bg4);border:1px solid var(--border);border-radius:var(--r);width:30px;height:30px;cursor:pointer;color:var(--text);font-size:16px;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+      <button onclick="saveWorkLog('${w.id}','${w.name}')" class="btn btn-primary btn-sm" style="min-width:60px">Luu</button>
+    </div>`).join('');
+}
+
+function adjustQty(inputId, delta) {
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  const val = parseInt(input.value)||0;
+  input.value = Math.max(0, val + delta);
+}
+
+async function saveWorkLog(workItemId, workItemName) {
+  const input = document.getElementById(`wi-qty-${workItemId}`);
+  const qty = parseInt(input?.value)||0;
+  if(qty <= 0) { alert('Vui long nhap so luong lon hon 0'); return; }
+
+  const today = new Date().toISOString().split('T')[0];
+  await sb.from('work_logs_daily').insert({
+    work_item_id: workItemId,
+    member_id: currentUser?.id || null,
+    quantity: qty,
+    date: today,
+    logged_at: new Date().toISOString()
+  });
+
+  // Reset o nhap
+  if(input) input.value = '0';
+
+  await loadWorkLogsDaily();
+  renderWorklogTable();
+  renderWorklogStats();
+
+  // Flash thanh cong
+  const btn = document.querySelector(`button[onclick="saveWorkLog('${workItemId}','${workItemName}')"]`);
+  if(btn){ btn.textContent='✓ Xong'; btn.style.background='var(--green)'; setTimeout(()=>{ btn.textContent='Luu'; btn.style.background=''; },1500); }
+}
+
+function renderWorklogTable() {
+  const tb = document.getElementById('worklogTable');
+  if(!tb) return;
+  if(state_workLogsDaily.length === 0) {
+    tb.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-text">Chua co du lieu hom nay</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = state_workLogsDaily.map(log => {
+    const item = state_workItems.find(w=>w.id===log.work_item_id);
+    const member = state.members.find(m=>m.id===log.member_id);
+    const time = log.logged_at ? new Date(log.logged_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}) : '-';
+    return `<tr>
+      <td style="font-weight:500">${item?.name||'-'}</td>
+      <td><span style="font-size:15px;font-weight:600;color:var(--accent)">${log.quantity}</span></td>
+      <td style="color:var(--text3)">${time}</td>
+      <td>${member?.name||currentUser?.name||'-'}</td>
+      <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteWorkLog('${log.id}')">Xoa</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderWorklogStats() {
+  const el = document.getElementById('worklogStats');
+  if(!el) return;
+  const today = new Date().toISOString().split('T')[0];
+  const totalToday = state_workLogsDaily.reduce((s,l)=>s+l.quantity,0);
+  const countToday = state_workLogsDaily.length;
+  // Top dau viec hom nay
+  const byItem = {};
+  state_workLogsDaily.forEach(l=>{ byItem[l.work_item_id]=(byItem[l.work_item_id]||0)+l.quantity; });
+  const topId = Object.entries(byItem).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const topItem = state_workItems.find(w=>w.id===topId);
+  el.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Tong san luong hom nay</div><div class="stat-value">${totalToday}</div></div>
+    <div class="stat-card"><div class="stat-label">So lan ghi nhan</div><div class="stat-value">${countToday}</div></div>
+    <div class="stat-card"><div class="stat-label">Nhieu nhat hom nay</div><div class="stat-value" style="font-size:14px">${topItem?.name||'-'}</div></div>`;
+}
+
+async function deleteWorkLog(id) {
+  if(!confirm('Xoa ban ghi nay?')) return;
+  await sb.from('work_logs_daily').delete().eq('id', id);
+  await loadWorkLogsDaily();
+  renderWorklogTable();
+  renderWorklogStats();
+}
+
+// Quan ly dau viec
+function toggleManageWorkItems() {
+  const panel = document.getElementById('manageWorkItemsPanel');
+  if(!panel) return;
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  if(show) renderWorkItemManageList();
+}
+
+function renderWorkItemManageList() {
+  const list = document.getElementById('workItemManageList');
+  if(!list) return;
+  list.innerHTML = state_workItems.map((w,i)=>`
+    <div id="wi-manage-${w.id}" draggable="true" ondragstart="dragWorkItem(event,'${w.id}')" ondragover="dragOverWorkItem(event)" ondrop="dropWorkItem(event,'${w.id}')"
+      style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:grab">
+      <span style="color:var(--text3);cursor:grab">⠿</span>
+      <span style="flex:1;font-size:13px;color:var(--text)">${w.name}</span>
+      <span style="font-size:11px;color:${w.is_active?'var(--green)':'var(--text3)'}">${w.is_active?'Hien':'An'}</span>
+      <button onclick="toggleWorkItemActive('${w.id}',${!w.is_active})" class="btn btn-ghost btn-sm">${w.is_active?'An':'Hien'}</button>
+      <button onclick="editWorkItem('${w.id}')" class="btn btn-ghost btn-sm">Sua</button>
+      <button onclick="deleteWorkItem('${w.id}')" class="btn btn-ghost btn-sm" style="color:var(--red)">Xoa</button>
+    </div>`).join('');
+}
+
+let dragSrcId = null;
+function dragWorkItem(e, id) { dragSrcId = id; }
+function dragOverWorkItem(e) { e.preventDefault(); }
+async function dropWorkItem(e, targetId) {
+  e.preventDefault();
+  if(dragSrcId === targetId) return;
+  const srcIdx = state_workItems.findIndex(w=>w.id===dragSrcId);
+  const tgtIdx = state_workItems.findIndex(w=>w.id===targetId);
+  const moved = state_workItems.splice(srcIdx,1)[0];
+  state_workItems.splice(tgtIdx,0,moved);
+  // Cap nhat sort_order
+  await Promise.all(state_workItems.map((w,i)=>sb.from('work_items').update({sort_order:i+1}).eq('id',w.id)));
+  renderWorkItemManageList();
+  renderWorkItemInputs();
+}
+
+function openAddWorkItem() {
+  const name = prompt('Ten dau viec:');
+  if(!name?.trim()) return;
+  sb.from('work_items').insert({name:name.trim(), sort_order:state_workItems.length+1}).then(async()=>{
+    await loadWorkItemsNew();
+    renderWorkItemManageList();
+    renderWorkItemInputs();
+  });
+}
+
+function editWorkItem(id) {
+  const item = state_workItems.find(w=>w.id===id);
+  if(!item) return;
+  const name = prompt('Ten moi:', item.name);
+  if(!name?.trim()) return;
+  sb.from('work_items').update({name:name.trim()}).eq('id',id).then(async()=>{
+    await loadWorkItemsNew();
+    renderWorkItemManageList();
+    renderWorkItemInputs();
+  });
+}
+
+async function toggleWorkItemActive(id, active) {
+  await sb.from('work_items').update({is_active:active}).eq('id',id);
+  await loadWorkItemsNew();
+  renderWorkItemManageList();
+  renderWorkItemInputs();
+}
+
+async function deleteWorkItem(id) {
+  if(!confirm('Xoa dau viec nay? Du lieu san luong lien quan van duoc giu lai.')) return;
+  await sb.from('work_items').delete().eq('id',id);
+  await loadWorkItemsNew();
+  renderWorkItemManageList();
+  renderWorkItemInputs();
+}
+// ==================== END SAN LUONG ====================
+
 // ==================== WRONG ORDER ====================
 let state_wrongOrders = [];
 
@@ -2755,6 +2971,7 @@ function showPage(name, evt) {
   document.getElementById('page-'+name).classList.add('active');
   if(evt) evt.currentTarget.classList.add('active');
   if(name === 'wrong-order') renderWrongOrders();
+  if(name === 'worklog') initWorklog();
 }
 
 // PARSE SHOPEE URL
