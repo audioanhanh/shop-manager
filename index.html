@@ -310,6 +310,10 @@ tr:hover td { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span>Giao Task</span>
       </div>
+      <div class="nav-item" onclick="showPage('strategy',event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Chien luoc</span>
+      </div>
       <div class="nav-divider"></div>
       <div class="nav-section">Workspace 2</div>
       <div class="nav-item" onclick="showPage('complaints',event)">
@@ -584,6 +588,34 @@ tr:hover td { background: var(--bg3); }
             <thead><tr><th>Ngay</th><th>Shop</th><th>Ma don</th><th>Phai gui</th><th>Thuc te gui</th><th>Ket qua</th><th>Nguoi nhap</th><th>Ghi chu</th><th></th></tr></thead>
             <tbody id="wrongOrderTable"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STRATEGY -->
+    <div class="page" id="page-strategy">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Chien luoc</div>
+          <div class="page-sub">Ke hoach phat trien theo tung muc tieu</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddStrategy()" style="${canDo('manage')?'':'display:none'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Them chien luoc
+        </button>
+      </div>
+      <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
+        <!-- Panel trai: danh sach chien luoc -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:0">
+          <div style="padding:10px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Chien luoc</div>
+          <div id="strategyList" style="padding:6px"></div>
+          <div style="padding:6px;border-top:1px solid var(--border)">
+            <button onclick="openAddStrategy()" style="width:100%;background:transparent;border:1px dashed var(--border);border-radius:var(--r);padding:8px;cursor:pointer;color:var(--text3);font-size:12px;${canDo('manage')?'':'display:none'}">+ Them</button>
+          </div>
+        </div>
+        <!-- Panel phai: noi dung chien luoc -->
+        <div id="strategyContent">
+          <div style="color:var(--text3);font-size:14px;padding:40px;text-align:center">Chon 1 chien luoc o ben trai de xem noi dung</div>
         </div>
       </div>
     </div>
@@ -892,6 +924,63 @@ tr:hover td { background: var(--bg3); }
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f8717133"></div>8+ task</div>
       </div>
       <div class="selected-date-label" id="selectedDateLabel">Chua chon ngay</div>
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGY MODAL -->
+<div class="modal-overlay" id="strategyModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title" id="strategyModalTitle">Them Chien luoc</div>
+    <input type="hidden" id="strategyId"/>
+    <div class="form-group">
+      <label class="form-label">Ten chien luoc *</label>
+      <input class="form-input" id="strategyName" placeholder="VD: Chien luoc Q2 2026, Ban thach anh..."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('strategyModal')">Huy</button>
+      <button class="btn btn-primary" onclick="saveStrategy()">Luu</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title" id="goalModalTitle">Them Muc tieu</div>
+    <input type="hidden" id="goalId"/>
+    <input type="hidden" id="goalStrategyId"/>
+    <div class="form-group">
+      <label class="form-label">Noi dung muc tieu *</label>
+      <input class="form-input" id="goalContent" placeholder="VD: Ban 500 cai thach anh / thang"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">So luong muc tieu</label>
+        <input class="form-input" type="number" id="goalQty" placeholder="500"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Don vi</label>
+        <input class="form-input" id="goalUnit" placeholder="cai, hop, bo..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chu ky</label>
+        <select class="form-input" id="goalPeriod">
+          <option value="month">/ Thang</option>
+          <option value="week">/ Tuan</option>
+          <option value="quarter">/ Quy</option>
+          <option value="year">/ Nam</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">SKU san pham (neu co)</label>
+      <input class="form-input" id="goalSku" placeholder="VD: treblethachanh/1cai" oninput="lookupProductBySku(this.value)"/>
+      <div id="goalSkuInfo" style="margin-top:6px;font-size:12px;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('goalModal')">Huy</button>
+      <button class="btn btn-primary" onclick="saveGoal()">Luu</button>
     </div>
   </div>
 </div>
@@ -1225,7 +1314,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -1736,6 +1825,280 @@ function toggleComplaintShop(el, shopId) {
   el.dataset.selected = 'true';
   document.getElementById('complaintShop').value = shopId;
 }
+
+// ==================== CHIEN LUOC ====================
+let state_strategies = [];
+let state_goals = [];
+let state_shopPlans = [];
+let currentStrategyId = null;
+
+async function loadStrategies() {
+  const [s, g, p] = await Promise.all([
+    sb.from('strategies').select('*').order('sort_order'),
+    sb.from('strategy_goals').select('*').order('sort_order'),
+    sb.from('strategy_shop_plans').select('*')
+  ]);
+  state_strategies = s.data || [];
+  state_goals = g.data || [];
+  state_shopPlans = p.data || [];
+}
+
+function renderStrategyList() {
+  const list = document.getElementById('strategyList');
+  if(!list) return;
+  if(state_strategies.length === 0) {
+    list.innerHTML = `<div style="padding:10px;font-size:12px;color:var(--text3)">Chua co chien luoc nao</div>`;
+    return;
+  }
+  list.innerHTML = state_strategies.map(s => {
+    const active = currentStrategyId === s.id;
+    return `<div onclick="selectStrategy('${s.id}')"
+      style="padding:8px 10px;border-radius:var(--r);cursor:pointer;background:${active?'var(--accent)':'transparent'};color:${active?'#fff':'var(--text)'};margin-bottom:2px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px;transition:all .15s">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+      ${canDo('manage')?`<button onclick="event.stopPropagation();editStrategy('${s.id}')" style="background:transparent;border:none;cursor:pointer;opacity:.6;font-size:11px;color:inherit;flex-shrink:0">✏️</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectStrategy(id) {
+  currentStrategyId = id;
+  renderStrategyList();
+  renderStrategyContent();
+}
+
+function renderStrategyContent() {
+  const el = document.getElementById('strategyContent');
+  if(!el || !currentStrategyId) return;
+  const strategy = state_strategies.find(s=>s.id===currentStrategyId);
+  if(!strategy) return;
+
+  const goals = state_goals.filter(g=>g.strategy_id===currentStrategyId);
+  const canEdit = canDo('manage');
+
+  // Render goals
+  const goalsHtml = goals.map(g => {
+    const product = g.product_id ? state.products.find(p=>p.id===g.product_id) : 
+                    g.sku ? state.products.find(p=>p.sku===g.sku) : null;
+    const periodLabels = {month:'tháng',week:'tuần',quarter:'quý',year:'năm'};
+    const targetText = g.target_qty ? `${g.target_qty} ${g.unit||''}/${periodLabels[g.period]||''}` : '';
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${g.content}</div>
+        ${targetText?`<div style="font-size:12px;color:var(--accent);margin-top:3px">🎯 ${targetText}</div>`:''}
+        ${g.sku?`<div style="font-size:11px;color:var(--text3);margin-top:2px">SKU: ${g.sku}</div>`:''}
+      </div>
+      ${product?`<button onclick="openProductTitles('${product.id}')" class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0">
+        → Tieu de & Mo ta
+      </button>`:''}
+      ${canEdit?`<div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="editGoal('${g.id}')" class="btn btn-ghost btn-sm">✏️</button>
+        <button onclick="deleteGoal('${g.id}')" class="btn btn-ghost btn-sm" style="color:var(--red)">✕</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  // Render shop plans table
+  const shopRows = state.shops.map(shop => {
+    const plan = state_shopPlans.find(p=>p.strategy_id===currentStrategyId&&p.shop_id===shop.id);
+    const direction = plan?.direction||'';
+    const todo = plan?.todo||'';
+    return `<tr>
+      <td style="font-weight:500;white-space:nowrap">
+        <div>${shop.name}</div>
+        <span class="badge badge-${shop.platform}" style="font-size:10px">${platformLabels[shop.platform]}</span>
+      </td>
+      <td>
+        <div onclick="editShopPlan('${shop.id}','direction','${direction.replace(/'/g,"&#39;")}',this)"
+          style="min-height:32px;cursor:${canEdit?'text':'default'};color:${direction?'var(--text)':'var(--text3)'};font-size:13px;padding:4px 6px;border-radius:4px;${canEdit?'border:1px solid transparent':''};"
+          title="${canEdit?'Bam de sua':''}"
+          onmouseover="${canEdit?"this.style.borderColor='var(--border)'":''}"
+          onmouseout="${canEdit?"this.style.borderColor='transparent'":''}"
+        >${direction||'<span style="font-size:12px;opacity:.4">Chua co...</span>'}</div>
+      </td>
+      <td>
+        <div onclick="editShopPlan('${shop.id}','todo','${todo.replace(/'/g,"&#39;")}',this)"
+          style="min-height:32px;cursor:${canEdit?'text':'default'};color:${todo?'var(--text)':'var(--text3)'};font-size:13px;padding:4px 6px;border-radius:4px;${canEdit?'border:1px solid transparent':''};"
+          title="${canEdit?'Bam de sua':''}"
+          onmouseover="${canEdit?"this.style.borderColor='var(--border)'":''}"
+          onmouseout="${canEdit?"this.style.borderColor='transparent'":''}"
+        >${todo||'<span style="font-size:12px;opacity:.4">Chua co...</span>'}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:600;color:var(--text)">${strategy.name}</div>
+      ${canEdit?`<div style="display:flex;gap:8px">
+        <button onclick="editStrategy('${strategy.id}')" class="btn btn-ghost btn-sm">Doi ten</button>
+        <button onclick="deleteStrategy('${strategy.id}')" class="btn btn-ghost btn-sm" style="color:var(--red)">Xoa</button>
+      </div>`:''}
+    </div>
+
+    <!-- Muc tieu -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Muc tieu</div>
+        ${canEdit?`<button onclick="openAddGoal()" class="btn btn-ghost btn-sm">+ Them muc tieu</button>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${goals.length>0 ? goalsHtml : `<div style="color:var(--text3);font-size:13px;padding:10px">${canEdit?'Chua co muc tieu. Bam "+ Them muc tieu" de bat dau.':'Chua co muc tieu.'}</div>`}
+      </div>
+    </div>
+
+    <!-- Bang ke hoach theo shop -->
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Ke hoach theo Shop</div>
+      ${canEdit?`<div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 Bam vao o Dinh huong hoac Can lam de chinh sua</div>`:''}
+      <div class="card" style="margin:0">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:140px">Shop / Nen tang</th><th>Dinh huong</th><th>Can lam</th></tr></thead>
+            <tbody>${shopRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editShopPlan(shopId, field, currentValue, el) {
+  if(!canDo('manage')) return;
+  const decoded = currentValue.replace(/&#39;/g,"'");
+  const newVal = prompt(field==='direction'?'Dinh huong:':'Can lam:', decoded);
+  if(newVal === null) return;
+
+  const plan = state_shopPlans.find(p=>p.strategy_id===currentStrategyId&&p.shop_id===shopId);
+  const updateData = field==='direction' ? {direction:newVal} : {todo:newVal};
+  updateData.updated_at = new Date().toISOString();
+
+  if(plan) {
+    sb.from('strategy_shop_plans').update(updateData).eq('id',plan.id).then(()=>{
+      if(plan) Object.assign(plan, updateData);
+      else state_shopPlans.push({strategy_id:currentStrategyId,shop_id:shopId,...updateData});
+      renderStrategyContent();
+    });
+  } else {
+    sb.from('strategy_shop_plans').insert({
+      strategy_id:currentStrategyId, shop_id:shopId, ...updateData
+    }).then(async()=>{
+      const {data} = await sb.from('strategy_shop_plans').select('*').eq('strategy_id',currentStrategyId).eq('shop_id',shopId).single();
+      if(data) state_shopPlans.push(data);
+      renderStrategyContent();
+    });
+  }
+}
+
+// CRUD Chien luoc
+function openAddStrategy() {
+  document.getElementById('strategyModalTitle').textContent = 'Them Chien luoc';
+  document.getElementById('strategyId').value = '';
+  document.getElementById('strategyName').value = '';
+  openModal('strategyModal');
+}
+
+function editStrategy(id) {
+  const s = state_strategies.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('strategyModalTitle').textContent = 'Doi ten Chien luoc';
+  document.getElementById('strategyId').value = s.id;
+  document.getElementById('strategyName').value = s.name;
+  openModal('strategyModal');
+}
+
+async function saveStrategy() {
+  const name = document.getElementById('strategyName').value.trim();
+  if(!name) return alert('Vui long nhap ten chien luoc');
+  const id = document.getElementById('strategyId').value;
+  if(id) {
+    await sb.from('strategies').update({name}).eq('id',id);
+  } else {
+    const {data} = await sb.from('strategies').insert({name, sort_order:state_strategies.length+1}).select().single();
+    if(data) currentStrategyId = data.id;
+  }
+  closeModal('strategyModal');
+  await loadStrategies();
+  renderStrategyList();
+  renderStrategyContent();
+}
+
+async function deleteStrategy(id) {
+  if(!confirm('Xoa chien luoc nay? Tat ca muc tieu va ke hoach lien quan cung bi xoa.')) return;
+  await sb.from('strategies').delete().eq('id',id);
+  if(currentStrategyId===id) currentStrategyId = null;
+  await loadStrategies();
+  renderStrategyList();
+  document.getElementById('strategyContent').innerHTML = `<div style="color:var(--text3);font-size:14px;padding:40px;text-align:center">Chon 1 chien luoc o ben trai de xem noi dung</div>`;
+}
+
+// CRUD Muc tieu
+function openAddGoal() {
+  document.getElementById('goalModalTitle').textContent = 'Them Muc tieu';
+  document.getElementById('goalId').value = '';
+  document.getElementById('goalStrategyId').value = currentStrategyId;
+  document.getElementById('goalContent').value = '';
+  document.getElementById('goalQty').value = '';
+  document.getElementById('goalUnit').value = '';
+  document.getElementById('goalPeriod').value = 'month';
+  document.getElementById('goalSku').value = '';
+  document.getElementById('goalSkuInfo').textContent = '';
+  openModal('goalModal');
+}
+
+function editGoal(id) {
+  const g = state_goals.find(x=>x.id===id);
+  if(!g) return;
+  document.getElementById('goalModalTitle').textContent = 'Sua Muc tieu';
+  document.getElementById('goalId').value = g.id;
+  document.getElementById('goalStrategyId').value = g.strategy_id;
+  document.getElementById('goalContent').value = g.content;
+  document.getElementById('goalQty').value = g.target_qty||'';
+  document.getElementById('goalUnit').value = g.unit||'';
+  document.getElementById('goalPeriod').value = g.period||'month';
+  document.getElementById('goalSku').value = g.sku||'';
+  lookupProductBySku(g.sku||'');
+  openModal('goalModal');
+}
+
+function lookupProductBySku(sku) {
+  const info = document.getElementById('goalSkuInfo');
+  if(!sku.trim()) { info.textContent=''; return; }
+  const p = state.products.find(x=>x.sku===sku.trim());
+  if(p) {
+    info.innerHTML = `<span style="color:var(--green)">✓ Tim thay: <b>${p.name}</b></span>`;
+  } else {
+    info.innerHTML = `<span style="color:var(--text3)">Chua tim thay san pham voi SKU nay</span>`;
+  }
+}
+
+async function saveGoal() {
+  const content = document.getElementById('goalContent').value.trim();
+  if(!content) return alert('Vui long nhap noi dung muc tieu');
+  const sku = document.getElementById('goalSku').value.trim();
+  const product = sku ? state.products.find(p=>p.sku===sku) : null;
+  const data = {
+    strategy_id: document.getElementById('goalStrategyId').value,
+    content,
+    target_qty: Number(document.getElementById('goalQty').value)||null,
+    unit: document.getElementById('goalUnit').value.trim()||null,
+    period: document.getElementById('goalPeriod').value,
+    sku: sku||null,
+    product_id: product?.id||null
+  };
+  const id = document.getElementById('goalId').value;
+  if(id) { await sb.from('strategy_goals').update(data).eq('id',id); }
+  else { await sb.from('strategy_goals').insert({...data, sort_order:state_goals.length+1}); }
+  closeModal('goalModal');
+  await loadStrategies();
+  renderStrategyContent();
+}
+
+async function deleteGoal(id) {
+  if(!confirm('Xoa muc tieu nay?')) return;
+  await sb.from('strategy_goals').delete().eq('id',id);
+  await loadStrategies();
+  renderStrategyContent();
+}
+// ==================== END CHIEN LUOC ====================
 
 // ==================== SAN LUONG ====================
 let state_workItems = [];
@@ -2992,6 +3355,7 @@ function showPage(name, evt) {
   if(evt) evt.currentTarget.classList.add('active');
   if(name === 'wrong-order') renderWrongOrders();
   if(name === 'worklog') initWorklog();
+  if(name === 'strategy') { renderStrategyList(); renderStrategyContent(); }
 }
 
 // PARSE SHOPEE URL
