@@ -455,12 +455,20 @@ tr:hover td { background: var(--bg3); }
           Them San pham
         </button>
       </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>SKU</th><th>Ten san pham</th><th>Danh muc</th><th>Gia co ban</th><th>Trang thai</th><th>Hanh dong</th></tr></thead>
-            <tbody id="productsTable"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
-          </table>
+      <div style="display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:start">
+        <!-- Panel trai: Danh muc -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:0">
+          <div style="padding:10px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Danh muc</div>
+          <div id="categoryList" style="padding:6px"></div>
+        </div>
+        <!-- Panel phai: San pham -->
+        <div class="card" style="margin:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>SKU</th><th>Ten san pham</th><th>Gia</th><th>Trang thai</th><th>Tieu de</th><th>Hanh dong</th></tr></thead>
+              <tbody id="productsTable"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2240,28 +2248,84 @@ function renderShops() {
 }
 
 // RENDER PRODUCTS
+let selectedCategory = 'all';
+
 function renderProducts() {
+  // Render panel danh muc
+  const categories = ['all', ...new Set(state.products.map(p=>p.category||'Khac').filter(Boolean))].sort((a,b)=>a==='all'?-1:b==='all'?1:a.localeCompare(b,'vi'));
+  const catCounts = {};
+  state.products.forEach(p=>{ const c=p.category||'Khac'; catCounts[c]=(catCounts[c]||0)+1; });
+
+  const catList = document.getElementById('categoryList');
+  if(catList) {
+    catList.innerHTML = categories.map(c=>{
+      const isAll = c==='all';
+      const label = isAll ? 'Tat ca' : c;
+      const count = isAll ? state.products.length : (catCounts[c]||0);
+      const active = selectedCategory===c;
+      return `<div onclick="selectCategory('${c}')" style="padding:8px 10px;border-radius:var(--r);cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:${active?'var(--accent)':'transparent'};color:${active?'#fff':'var(--text)'};margin-bottom:2px;transition:all .15s;font-size:13px">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px" title="${label}">${label}</span>
+        <span style="font-size:11px;opacity:.7;margin-left:4px;flex-shrink:0">${count}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Loc san pham theo danh muc
+  const filtered = selectedCategory==='all'
+    ? state.products
+    : state.products.filter(p=>(p.category||'Khac')===selectedCategory);
+
   const tb = document.getElementById('productsTable');
-  if(state.products.length===0){ tb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-text">Chua co san pham nao</div></div></td></tr>`; return; }
-  tb.innerHTML = state.products.map(p => {
-    // Dem so shop da co tieu de
+  if(filtered.length===0){
+    tb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-text">Chua co san pham nao trong danh muc nay</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = filtered.map(p => {
     const titleCount = state.productTitles.filter(t=>t.product_id===p.id&&t.title).length;
     const totalShops = state.shops.length;
-    const titleStatus = totalShops>0 ? `${titleCount}/${totalShops} shop` : '0 shop';
+    const titleStatus = totalShops>0 ? `${titleCount}/${totalShops}` : '0';
     const titleColor = titleCount===0?'var(--text3)':titleCount===totalShops?'var(--green)':'var(--amber)';
     return `<tr>
-      <td><span style="font-family:monospace;background:var(--bg4);padding:2px 6px;border-radius:4px;font-size:12px">${p.sku}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-family:monospace;background:var(--bg4);padding:3px 7px;border-radius:4px;font-size:12px;white-space:nowrap">${p.sku}</span>
+          <button onclick="copyText('${p.sku}',this)" title="Copy SKU" style="background:transparent;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:2px;border-radius:3px;flex-shrink:0">⎘</button>
+        </div>
+      </td>
       <td style="font-weight:500">${p.name}</td>
-      <td>${p.category||'-'}</td>
-      <td>${p.base_price?fmtCurrency(p.base_price):'-'}</td>
+      <td style="white-space:nowrap">${p.base_price?fmtCurrency(p.base_price):'-'}</td>
       <td><span class="status ${p.is_active?'status-active':'status-inactive'}">${p.is_active?'Hoat dong':'Ngung'}</span></td>
-      <td><div style="display:flex;gap:6px;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="openProductTitles('${p.id}')" style="color:${titleColor}">Tieu de (${titleStatus})</button>
-        <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">Sua</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Xoa</button>
-      </div></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openProductTitles('${p.id}')" style="color:${titleColor};white-space:nowrap">
+          📝 ${titleStatus} shop
+        </button>
+      </td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">Sua</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Xoa</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  renderProducts();
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    btn.style.color = 'var(--green)';
+    setTimeout(()=>{ btn.textContent=orig; btn.style.color='var(--text3)'; }, 1500);
+  }).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
 }
 
 // RENDER TASKS
