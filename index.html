@@ -736,8 +736,13 @@ tr:hover td { background: var(--bg3); }
     </div>
     <div class="form-group">
       <label class="form-label">Mo ta san pham (Claude dung de goi y tieu de)</label>
-      <textarea class="form-textarea" id="productDesc" placeholder="Chat lieu: cotton 100%&#10;Mau sac: trang, den, xam&#10;Size: S/M/L/XL&#10;Dac diem: thoang mat, co tron, tay ngan&#10;Doi tuong: nam thanh nien 18-35 tuoi&#10;Uu diem: gia re, ben dep, de phoi do" style="min-height:100px"></textarea>
+      <textarea class="form-textarea" id="productDesc" placeholder="Chat lieu: titan&#10;Day dan: dong tron CCAW&#10;Kich thuoc: 72.2mm&#10;Ung dung: thay the la treble bi hong" style="min-height:90px"></textarea>
       <div style="font-size:11px;color:var(--text3);margin-top:3px">Dien cang chi tiet, Claude goi y cang chinh xac</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ghi chu ky thuat / Tu khoa uu tien</label>
+      <textarea class="form-textarea" id="productTechNotes" placeholder="Ten goi khac: con treble, mang treble, la treble&#10;Model: 750&#10;Tu khoa uu tien: con treble 72mm, thay the loa treble&#10;Luu y ky thuat: do theo long trong" style="min-height:80px"></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">Claude se uu tien dung cac tu nay khi tao tieu de va mo ta</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('productModal')">Huy</button>
@@ -2727,7 +2732,8 @@ async function saveProduct() {
     name: document.getElementById('productName').value.trim(),
     category: document.getElementById('productCategory').value.trim()||null,
     base_price: Number(document.getElementById('productPrice').value)||null,
-    description: document.getElementById('productDesc')?.value?.trim()||null
+    description: document.getElementById('productDesc')?.value?.trim()||null,
+    tech_notes: document.getElementById('productTechNotes')?.value?.trim()||null
   };
   if(!data.sku||!data.name) return alert('Vui long nhap SKU va ten san pham');
   if(id) { await sb.from('products').update(data).eq('id',id); }
@@ -2866,6 +2872,7 @@ function editProduct(id) {
   document.getElementById('productCategory').value = p.category||'';
   document.getElementById('productPrice').value = p.base_price||'';
   if(document.getElementById('productDesc')) document.getElementById('productDesc').value = p.description||'';
+  if(document.getElementById('productTechNotes')) document.getElementById('productTechNotes').value = p.tech_notes||'';
   openModal('productModal', true);
 }
 
