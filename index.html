@@ -1014,11 +1014,11 @@ tr:hover td { background: var(--bg3); }
     <div class="form-group">
       <label class="form-label">Nha van chuyen *</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${['SPX','JnT','GHN','Viettel','VNP'].map(c=>`
-        <div onclick="selectNvcCarrier(this,'${c}')" data-carrier="${c}"
-          style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">
-          ${c}
-        </div>`).join('')}
+        <div onclick="selectNvcCarrier(this,'SPX')" data-carrier="SPX" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">SPX</div>
+        <div onclick="selectNvcCarrier(this,'JnT')" data-carrier="JnT" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">J&amp;T</div>
+        <div onclick="selectNvcCarrier(this,'GHN')" data-carrier="GHN" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">GHN</div>
+        <div onclick="selectNvcCarrier(this,'Viettel')" data-carrier="Viettel" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">Viettel</div>
+        <div onclick="selectNvcCarrier(this,'VNP')" data-carrier="VNP" style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">VNP</div>
       </div>
       <input type="hidden" id="nvcCarrier"/>
     </div>
