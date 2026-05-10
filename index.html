@@ -1006,6 +1006,10 @@ tr:hover td { background: var(--bg3); }
         <label class="form-label">Ma don hang *</label>
         <input class="form-input" type="text" id="woOrder" placeholder="VD: SP123456789"/>
       </div>
+      <div class="form-group">
+        <label class="form-label">Ma van don</label>
+        <input class="form-input" type="text" id="woTracking" placeholder="VD: SPXVN123456789"/>
+      </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1065,7 +1069,9 @@ tr:hover td { background: var(--bg3); }
         <input class="form-input" id="complaintOrder" placeholder="ORD123456"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Loai khieu nai *</label>
+        <label class="form-label">Ma van don</label>
+        <input class="form-input" id="complaintTracking" placeholder="VD: SPXVN123456789"/>
+      </div>
         <select class="form-select" id="complaintType">
           <option value="hang_loi">Hang loi/hong</option>
           <option value="giao_cham">Giao hang cham</option>
@@ -2660,6 +2666,7 @@ async function saveWrongOrder() {
     shop_id: shopId,
     date,
     order_id: orderId,
+    tracking_code: document.getElementById('woTracking')?.value.trim()||null,
     correct_item: document.getElementById('woCorrect').value.trim(),
     actual_item: document.getElementById('woActual').value.trim(),
     result: document.getElementById('woResult').value,
@@ -3438,6 +3445,7 @@ async function saveComplaint() {
   const data = {
     shop_id: document.getElementById('complaintShop').value||null,
     order_id: document.getElementById('complaintOrder').value.trim()||null,
+    tracking_code: document.getElementById('complaintTracking')?.value.trim()||null,
     complaint_type: document.getElementById('complaintType').value,
     status: document.getElementById('complaintStatus').value,
     result: document.getElementById('complaintResult').value||null,
