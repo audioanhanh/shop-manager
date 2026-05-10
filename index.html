@@ -324,6 +324,10 @@ tr:hover td { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
         <span>Gui sai hang</span>
       </div>
+      <div class="nav-item" onclick="showPage('nvc',event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Khieu nai NVC</span>
+      </div>
       <div class="nav-item" onclick="showPage('worklog',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>San luong</span>
@@ -618,6 +622,59 @@ tr:hover td { background: var(--bg3); }
         <!-- Panel phai -->
         <div id="strategyContent">
           <div style="color:var(--text3);font-size:14px;padding:40px;text-align:center">Chon 1 chien luoc o ben trai de xem noi dung</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NVC COMPLAINTS -->
+    <div class="page" id="page-nvc">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Khieu nai NVC</div>
+          <div class="page-sub">Theo doi don hang bi tra khong, khieu nai nha van chuyen</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="copyDailyReport()" style="border-color:#2a4070;color:var(--text2)">📋 Copy bao cao ngay</button>
+          <button class="btn btn-primary" onclick="openNvcModal()">+ Them don</button>
+        </div>
+      </div>
+
+      <!-- Stats hom nay -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" id="nvcStats">
+        <div class="stat-card"><div class="stat-label">Hom nay</div><div class="stat-value" id="nvc-today">0</div></div>
+        <div class="stat-card"><div class="stat-label">Chua khieu nai</div><div class="stat-value" style="color:var(--red)" id="nvc-pending">0</div></div>
+        <div class="stat-card"><div class="stat-label">Da khieu nai</div><div class="stat-value" style="color:var(--green)" id="nvc-done">0</div></div>
+        <div class="stat-card"><div class="stat-label">Thang nay</div><div class="stat-value" id="nvc-month">0</div></div>
+      </div>
+
+      <!-- Filter -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select class="form-input" style="width:140px" id="nvcFilterPeriod" onchange="renderNvcComplaints()">
+          <option value="today">Hom nay</option>
+          <option value="week">Tuan nay</option>
+          <option value="month">Thang nay</option>
+          <option value="all">Tat ca</option>
+        </select>
+        <select class="form-input" style="width:140px" id="nvcFilterCarrier" onchange="renderNvcComplaints()">
+          <option value="">Tat ca NVC</option>
+          <option value="SPX">SPX</option>
+          <option value="JnT">J&T</option>
+          <option value="GHN">GHN</option>
+          <option value="Viettel">Viettel</option>
+          <option value="VNP">VNP</option>
+        </select>
+        <select class="form-input" style="width:160px" id="nvcFilterShop" onchange="renderNvcComplaints()">
+          <option value="">Tat ca shop</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ngay</th><th>Shop</th><th>Ma van don</th><th>NVC</th><th>Da khieu nai</th><th>Ghi chu</th><th>Nguoi nhap</th><th></th></tr></thead>
+            <tbody id="nvcTable"><tr><td colspan="8"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -926,6 +983,62 @@ tr:hover td { background: var(--bg3); }
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f8717133"></div>8+ task</div>
       </div>
       <div class="selected-date-label" id="selectedDateLabel">Chua chon ngay</div>
+    </div>
+  </div>
+</div>
+
+<!-- NVC MODAL -->
+<div class="modal-overlay" id="nvcModal">
+  <div class="modal" style="max-width:680px;width:95vw">
+    <div class="modal-title">Them Don Khieu nai NVC</div>
+    <input type="hidden" id="nvcId"/>
+
+    <!-- Shop panel -->
+    <div class="form-group">
+      <label class="form-label">Chon Shop *</label>
+      <div id="nvcShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px"></div>
+      <input type="hidden" id="nvcShopId"/>
+    </div>
+
+    <!-- NVC -->
+    <div class="form-group">
+      <label class="form-label">Nha van chuyen *</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${['SPX','JnT','GHN','Viettel','VNP'].map(c=>`
+        <div onclick="selectNvcCarrier(this,'${c}')" data-carrier="${c}"
+          style="padding:8px 16px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text);transition:all .15s">
+          ${c}
+        </div>`).join('')}
+      </div>
+      <input type="hidden" id="nvcCarrier"/>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Ma van don *</label>
+        <input class="form-input" id="nvcTracking" placeholder="VD: SPXVN123456789"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ngay ghi nhan</label>
+        <input class="form-input" type="date" id="nvcDate"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ghi chu</label>
+      <textarea class="form-input" id="nvcNotes" rows="2" placeholder="Mo ta tinh trang, so lan da khieu nai..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="nvcIsComplained" style="width:16px;height:16px;accent-color:var(--accent)"/>
+        <span style="font-size:13px;color:var(--text)">Da khieu nai roi</span>
+      </label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('nvcModal')">Huy</button>
+      <button class="btn btn-primary" onclick="saveNvcComplaint()">Luu</button>
     </div>
   </div>
 </div>
@@ -1322,7 +1435,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies(), loadSapoSales()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies(), loadSapoSales(), loadNvcComplaints()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -2090,6 +2203,277 @@ function renderSapoDashboard() {
   }
 }
 // ==================== END SAPO DASHBOARD ====================
+
+// ==================== NVC COMPLAINTS ====================
+let state_nvcComplaints = [];
+
+async function loadNvcComplaints() {
+  const { data } = await sb.from('nvc_complaints').select('*').order('created_at', {ascending:false});
+  state_nvcComplaints = data || [];
+}
+
+function openNvcModal(id = null) {
+  document.getElementById('nvcId').value = id || '';
+  document.getElementById('nvcShopId').value = '';
+  document.getElementById('nvcCarrier').value = '';
+  document.getElementById('nvcTracking').value = '';
+  document.getElementById('nvcDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nvcNotes').value = '';
+  document.getElementById('nvcIsComplained').checked = false;
+
+  // Reset carrier buttons
+  document.querySelectorAll('#nvcModal [data-carrier]').forEach(el => {
+    el.style.background = 'var(--bg3)';
+    el.style.borderColor = 'var(--border)';
+    el.style.color = 'var(--text)';
+  });
+
+  // Render shop panel
+  const panel = document.getElementById('nvcShopPanel');
+  panel.innerHTML = state.shops.map(s => `
+    <div onclick="selectNvcShop(this,'${s.id}')" data-shop-id="${s.id}"
+      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
+      <div style="color:var(--text)">${s.name}</div>
+      <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
+    </div>`).join('');
+
+  if(id) {
+    const item = state_nvcComplaints.find(x=>x.id===id);
+    if(item) {
+      document.getElementById('nvcTracking').value = item.tracking_code||'';
+      document.getElementById('nvcDate').value = item.date||'';
+      document.getElementById('nvcNotes').value = item.notes||'';
+      document.getElementById('nvcIsComplained').checked = item.is_complained||false;
+      document.getElementById('nvcCarrier').value = item.carrier||'';
+      document.getElementById('nvcShopId').value = item.shop_id||'';
+      // Highlight carrier
+      const carrierEl = document.querySelector(`#nvcModal [data-carrier="${item.carrier}"]`);
+      if(carrierEl) selectNvcCarrier(carrierEl, item.carrier);
+      // Highlight shop
+      const shopEl = panel.querySelector(`[data-shop-id="${item.shop_id}"]`);
+      if(shopEl) selectNvcShop(shopEl, item.shop_id);
+    }
+  }
+  openModal('nvcModal');
+}
+
+function selectNvcShop(el, shopId) {
+  document.querySelectorAll('#nvcShopPanel [data-shop-id]').forEach(t => {
+    t.style.background='var(--bg3)'; t.style.borderColor='var(--border)'; t.dataset.selected='';
+  });
+  el.style.background='#4f7fff22'; el.style.borderColor='var(--accent)'; el.dataset.selected='true';
+  document.getElementById('nvcShopId').value = shopId;
+}
+
+function selectNvcCarrier(el, carrier) {
+  document.querySelectorAll('#nvcModal [data-carrier]').forEach(t => {
+    t.style.background='var(--bg3)'; t.style.borderColor='var(--border)'; t.style.color='var(--text)';
+  });
+  el.style.background='var(--accent)'; el.style.borderColor='var(--accent)'; el.style.color='#fff';
+  document.getElementById('nvcCarrier').value = carrier;
+}
+
+async function saveNvcComplaint() {
+  const shopId = document.getElementById('nvcShopId').value;
+  const carrier = document.getElementById('nvcCarrier').value;
+  const tracking = document.getElementById('nvcTracking').value.trim();
+  if(!shopId) { alert('Vui long chon shop'); return; }
+  if(!carrier) { alert('Vui long chon nha van chuyen'); return; }
+  if(!tracking) { alert('Vui long nhap ma van don'); return; }
+
+  const data = {
+    shop_id: shopId,
+    carrier,
+    tracking_code: tracking,
+    date: document.getElementById('nvcDate').value,
+    notes: document.getElementById('nvcNotes').value.trim()||null,
+    is_complained: document.getElementById('nvcIsComplained').checked,
+    created_by: currentUser?.id||null
+  };
+
+  try {
+    const id = document.getElementById('nvcId').value;
+    if(id) {
+      const {error} = await sb.from('nvc_complaints').update(data).eq('id',id);
+      if(error) throw error;
+    } else {
+      const {error} = await sb.from('nvc_complaints').insert(data);
+      if(error) throw error;
+    }
+    closeModal('nvcModal');
+    await loadNvcComplaints();
+    renderNvcComplaints();
+  } catch(err) {
+    alert('Loi: ' + (err.message||JSON.stringify(err)));
+  }
+}
+
+async function toggleNvcComplained(id, current) {
+  await sb.from('nvc_complaints').update({is_complained:!current}).eq('id',id);
+  await loadNvcComplaints();
+  renderNvcComplaints();
+}
+
+async function deleteNvcComplaint(id) {
+  if(!confirm('Xoa don nay?')) return;
+  await sb.from('nvc_complaints').delete().eq('id',id);
+  await loadNvcComplaints();
+  renderNvcComplaints();
+}
+
+function renderNvcComplaints() {
+  const period = document.getElementById('nvcFilterPeriod')?.value||'today';
+  const carrier = document.getElementById('nvcFilterCarrier')?.value||'';
+  const shopFilter = document.getElementById('nvcFilterShop')?.value||'';
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  // Cap nhat filter shop
+  const shopSel = document.getElementById('nvcFilterShop');
+  if(shopSel && shopSel.options.length <= 1) {
+    state.shops.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; shopSel.appendChild(o); });
+  }
+
+  const filtered = state_nvcComplaints.filter(x=>{
+    if(carrier && x.carrier!==carrier) return false;
+    if(shopFilter && x.shop_id!==shopFilter) return false;
+    const d = new Date(x.date||x.created_at);
+    if(period==='today') return (x.date||x.created_at?.split('T')[0])===todayStr;
+    if(period==='week') { const sw=new Date(now); sw.setDate(now.getDate()-now.getDay()+1); sw.setHours(0,0,0,0); return d>=sw; }
+    if(period==='month') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return true;
+  });
+
+  // Stats
+  const today = state_nvcComplaints.filter(x=>(x.date||x.created_at?.split('T')[0])===todayStr);
+  const month = state_nvcComplaints.filter(x=>{ const d=new Date(x.date||x.created_at); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+  document.getElementById('nvc-today').textContent = today.length;
+  document.getElementById('nvc-pending').textContent = today.filter(x=>!x.is_complained).length;
+  document.getElementById('nvc-done').textContent = today.filter(x=>x.is_complained).length;
+  document.getElementById('nvc-month').textContent = month.length;
+
+  const tb = document.getElementById('nvcTable');
+  if(filtered.length===0) {
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-text">Chua co don nao trong giai doan nay</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = filtered.map(x=>{
+    const shop = state.shops.find(s=>s.id===x.shop_id);
+    const member = state.members.find(m=>m.id===x.created_by);
+    const date = x.date||x.created_at?.split('T')[0]||'-';
+    return `<tr>
+      <td style="white-space:nowrap">${date}</td>
+      <td><div style="font-weight:500">${shop?.name||'-'}</div><span class="badge badge-${shop?.platform||'shopee'}" style="font-size:10px">${platformLabels[shop?.platform||'shopee']}</span></td>
+      <td style="font-family:monospace;font-size:12px">${x.tracking_code||'-'}</td>
+      <td><span style="background:var(--accent)22;color:var(--accent);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">${x.carrier||'-'}</span></td>
+      <td>
+        <button onclick="toggleNvcComplained('${x.id}',${x.is_complained})"
+          style="background:${x.is_complained?'#34d39922':'var(--bg4)'};border:1px solid ${x.is_complained?'var(--green)':'var(--border)'};color:${x.is_complained?'var(--green)':'var(--text3)'};padding:4px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;font-weight:600">
+          ${x.is_complained?'✅ Da KN':'☐ Chua KN'}
+        </button>
+      </td>
+      <td style="color:var(--text3);font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x.notes||''}">${x.notes||''}</td>
+      <td style="color:var(--text3)">${member?.name||currentUser?.name||'-'}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button onclick="openNvcModal('${x.id}')" class="btn btn-ghost btn-sm">Sua</button>
+          <button onclick="deleteNvcComplaint('${x.id}')" class="btn btn-ghost btn-sm" style="color:var(--red)">Xoa</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ==================== COPY BAO CAO NGAY ====================
+async function copyDailyReport() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const dateLabel = now.toLocaleDateString('vi-VN');
+  const sep = '━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+  const resultLabels = { pending:'Dang xu ly', resend:'Gui lai hang', refund:'Hoan tien', other:'Khac' };
+  const typeLabels = { hang_loi:'Hang loi/hong', giao_cham:'Giao hang cham', sai_ma:'Sai ma/mau', thieu_hang:'Thieu hang', hoan_tien:'Yeu cau hoan tien', khac:'Khac' };
+  const statusLabels2 = { received:'Tiep nhan', processing:'Dang xu ly', submitted:'Da gui san', waiting:'Cho ket qua', resolved:'Da giai quyet' };
+
+  let lines = [];
+  lines.push(`📊 BAO CAO NGAY ${dateLabel}`);
+  lines.push('');
+
+  // 1. SAN LUONG
+  lines.push('🔧 SAN LUONG');
+  lines.push(sep);
+  const todayLogs = state_workLogsDaily; // da load theo ngay hien tai
+  if(todayLogs.length === 0) {
+    lines.push('   Chua co du lieu san luong hom nay');
+  } else {
+    const byItem = {};
+    todayLogs.forEach(l=>{ const item=state_workItems.find(w=>w.id===l.work_item_id); const name=item?.name||'?'; byItem[name]=(byItem[name]||0)+l.quantity; });
+    Object.entries(byItem).forEach(([name,qty])=>lines.push(`   ${name}: ${qty}`));
+    lines.push(`   Tong: ${todayLogs.reduce((s,l)=>s+l.quantity,0)}`);
+  }
+  lines.push('');
+
+  // 2. GUI SAI HANG
+  lines.push('📦 GUI SAI HANG');
+  lines.push(sep);
+  const todayWO = state_wrongOrders.filter(w=>w.date===todayStr);
+  if(todayWO.length === 0) {
+    lines.push('   Khong co don gui sai hom nay ✓');
+  } else {
+    todayWO.forEach((w,i)=>{
+      const shop=state.shops.find(s=>s.id===w.shop_id);
+      lines.push(`   ${i+1}. ${shop?.name||'-'} | Don: ${w.order_id||'-'}`);
+      if(w.tracking_code) lines.push(`      Van don: ${w.tracking_code}`);
+      if(w.correct_item) lines.push(`      Phai gui: ${w.correct_item}`);
+      if(w.actual_item) lines.push(`      Thuc te: ${w.actual_item}`);
+      lines.push(`      Ket qua: ${resultLabels[w.result]||'-'}`);
+    });
+  }
+  lines.push('');
+
+  // 3. KHIEU NAI
+  lines.push('⚠️ KHIEU NAI');
+  lines.push(sep);
+  const todayC = state.complaints.filter(c=>c.created_at?.split('T')[0]===todayStr);
+  if(todayC.length === 0) {
+    lines.push('   Khong co khieu nai moi hom nay ✓');
+  } else {
+    todayC.forEach((c,i)=>{
+      const shop=state.shops.find(s=>s.id===c.shop_id);
+      lines.push(`   ${i+1}. ${shop?.name||'-'} | ${typeLabels[c.complaint_type]||'-'}`);
+      if(c.order_id) lines.push(`      Don: ${c.order_id}`);
+      if(c.tracking_code) lines.push(`      Van don: ${c.tracking_code}`);
+      lines.push(`      Trang thai: ${statusLabels2[c.status]||'-'}`);
+    });
+  }
+  lines.push('');
+
+  // 4. KHIEU NAI NVC
+  lines.push('🚚 KHIEU NAI NHA VAN CHUYEN');
+  lines.push(sep);
+  const todayNVC = state_nvcComplaints.filter(x=>(x.date||x.created_at?.split('T')[0])===todayStr);
+  if(todayNVC.length === 0) {
+    lines.push('   Khong co don NVC hom nay ✓');
+  } else {
+    todayNVC.forEach((x,i)=>{
+      const shop=state.shops.find(s=>s.id===x.shop_id);
+      lines.push(`   ${i+1}. ${shop?.name||'-'} | ${x.carrier||'-'} | ${x.tracking_code||'-'}`);
+      lines.push(`      Trang thai: ${x.is_complained?'Da khieu nai ✅':'Chua khieu nai ⚠️'}`);
+      if(x.notes) lines.push(`      Ghi chu: ${x.notes}`);
+    });
+    const chua = todayNVC.filter(x=>!x.is_complained).length;
+    if(chua>0) lines.push(`   ⚠️ Con ${chua} don chua khieu nai!`);
+  }
+
+  lines.push('');
+  lines.push(`--- Tong hop boi Shop Manager ${dateLabel} ---`);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('[onclick="copyDailyReport()"]');
+    if(btn){ const orig=btn.innerHTML; btn.innerHTML='✓ Da copy!'; btn.style.color='var(--green)'; setTimeout(()=>{btn.innerHTML=orig;btn.style.color='';},2500); }
+  }).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Da copy! Paste vao Zalo.'); });
+}
+// ==================== END NVC ====================
 
 // ==================== CHIEN LUOC ====================
 let state_strategies = [];
@@ -3739,6 +4123,7 @@ function showPage(name, evt) {
   if(evt) evt.currentTarget.classList.add('active');
   if(name === 'wrong-order') renderWrongOrders();
   if(name === 'worklog') initWorklog();
+  if(name === 'nvc') renderNvcComplaints();
   if(name === 'strategy') { renderStrategyList(); renderStrategyContent(); renderSapoDashboard(); }
 }
 
