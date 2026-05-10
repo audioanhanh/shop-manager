@@ -319,6 +319,7 @@ tr:hover td { background: var(--bg3); }
       <div class="nav-item" onclick="showPage('complaints',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>Khieu nai</span>
+        <span id="badge-complaints" style="display:none;background:#e24b4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px;text-align:center"></span>
       </div>
       <div class="nav-item" onclick="showPage('wrong-order',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -327,6 +328,7 @@ tr:hover td { background: var(--bg3); }
       <div class="nav-item" onclick="showPage('nvc',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         <span>Khieu nai NVC</span>
+        <span id="badge-nvc" style="display:none;background:#e24b4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px;text-align:center"></span>
       </div>
       <div class="nav-item" onclick="showPage('worklog',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -1455,6 +1457,7 @@ async function loadAll() {
   populateSelects();
   initCalGrid4();
   renderProgress4();
+  updateBadges();
 }
 
 async function loadBranches() {
@@ -2311,6 +2314,7 @@ async function saveNvcComplaint() {
     closeModal('nvcModal');
     await loadNvcComplaints();
     renderNvcComplaints();
+    updateBadges();
   } catch(err) {
     alert('Loi: ' + (err.message||JSON.stringify(err)));
   }
@@ -2320,6 +2324,7 @@ async function toggleNvcComplained(id, current) {
   await sb.from('nvc_complaints').update({is_complained:!current}).eq('id',id);
   await loadNvcComplaints();
   renderNvcComplaints();
+  updateBadges();
 }
 
 async function deleteNvcComplaint(id) {
@@ -2327,6 +2332,7 @@ async function deleteNvcComplaint(id) {
   await sb.from('nvc_complaints').delete().eq('id',id);
   await loadNvcComplaints();
   renderNvcComplaints();
+  updateBadges();
 }
 
 function renderNvcComplaints() {
@@ -2392,7 +2398,34 @@ function renderNvcComplaints() {
   }).join('');
 }
 
-// ==================== COPY BAO CAO NGAY ====================
+// ==================== BADGES & ALERTS ====================
+function updateBadges() {
+  // Khieu nai: dem tat ca dang cho ket qua (submitted, waiting, processing)
+  const pendingComplaints = state.complaints.filter(c=>['submitted','waiting','processing','received'].includes(c.status));
+  const badgeC = document.getElementById('badge-complaints');
+  if(badgeC) {
+    if(pendingComplaints.length > 0) {
+      badgeC.textContent = pendingComplaints.length;
+      badgeC.style.display = 'inline-block';
+    } else {
+      badgeC.style.display = 'none';
+    }
+  }
+
+  // NVC: dem tat ca chua khieu nai
+  const pendingNvc = state_nvcComplaints.filter(x=>!x.is_complained);
+  const badgeN = document.getElementById('badge-nvc');
+  if(badgeN) {
+    if(pendingNvc.length > 0) {
+      badgeN.textContent = pendingNvc.length;
+      badgeN.style.display = 'inline-block';
+    } else {
+      badgeN.style.display = 'none';
+    }
+  }
+}
+
+// ==================== COPY BAO CAO NGAY (Huong B) ====================
 async function copyDailyReport() {
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -2409,14 +2442,13 @@ async function copyDailyReport() {
   // 1. SAN LUONG
   lines.push('🔧 SAN LUONG');
   lines.push(sep);
-  const todayLogs = state_workLogsDaily; // da load theo ngay hien tai
-  if(todayLogs.length === 0) {
+  if(state_workLogsDaily.length === 0) {
     lines.push('   Chua co du lieu san luong hom nay');
   } else {
     const byItem = {};
-    todayLogs.forEach(l=>{ const item=state_workItems.find(w=>w.id===l.work_item_id); const name=item?.name||'?'; byItem[name]=(byItem[name]||0)+l.quantity; });
+    state_workLogsDaily.forEach(l=>{ const item=state_workItems.find(w=>w.id===l.work_item_id); const name=item?.name||'?'; byItem[name]=(byItem[name]||0)+l.quantity; });
     Object.entries(byItem).forEach(([name,qty])=>lines.push(`   ${name}: ${qty}`));
-    lines.push(`   Tong: ${todayLogs.reduce((s,l)=>s+l.quantity,0)}`);
+    lines.push(`   Tong: ${state_workLogsDaily.reduce((s,l)=>s+l.quantity,0)}`);
   }
   lines.push('');
 
@@ -2438,38 +2470,64 @@ async function copyDailyReport() {
   }
   lines.push('');
 
-  // 3. KHIEU NAI
+  // 3. KHIEU NAI — tao hom nay + tat ca dang cho ket qua
   lines.push('⚠️ KHIEU NAI');
   lines.push(sep);
-  const todayC = state.complaints.filter(c=>c.created_at?.split('T')[0]===todayStr);
-  if(todayC.length === 0) {
-    lines.push('   Khong co khieu nai moi hom nay ✓');
+  const todayNewC = state.complaints.filter(c=>c.created_at?.split('T')[0]===todayStr);
+  const pendingC = state.complaints.filter(c=>['submitted','waiting','processing','received'].includes(c.status) && c.created_at?.split('T')[0]!==todayStr);
+
+  if(todayNewC.length === 0 && pendingC.length === 0) {
+    lines.push('   Khong co khieu nai nao can xu ly ✓');
   } else {
-    todayC.forEach((c,i)=>{
-      const shop=state.shops.find(s=>s.id===c.shop_id);
-      lines.push(`   ${i+1}. ${shop?.name||'-'} | ${typeLabels[c.complaint_type]||'-'}`);
-      if(c.order_id) lines.push(`      Don: ${c.order_id}`);
-      if(c.tracking_code) lines.push(`      Van don: ${c.tracking_code}`);
-      lines.push(`      Trang thai: ${statusLabels2[c.status]||'-'}`);
-    });
+    if(todayNewC.length > 0) {
+      lines.push('   [MOI HOM NAY]');
+      todayNewC.forEach((c,i)=>{
+        const shop=state.shops.find(s=>s.id===c.shop_id);
+        lines.push(`   ${i+1}. ${shop?.name||'-'} | ${typeLabels[c.complaint_type]||'-'}`);
+        if(c.order_id) lines.push(`      Don: ${c.order_id}`);
+        if(c.tracking_code) lines.push(`      Van don: ${c.tracking_code}`);
+        lines.push(`      Trang thai: ${statusLabels2[c.status]||'-'}`);
+      });
+    }
+    if(pendingC.length > 0) {
+      lines.push(`   [DANG CHO KET QUA — ${pendingC.length} don]`);
+      pendingC.forEach((c,i)=>{
+        const shop=state.shops.find(s=>s.id===c.shop_id);
+        const created = c.created_at?.split('T')[0]||'-';
+        lines.push(`   ${i+1}. ${shop?.name||'-'} | ${typeLabels[c.complaint_type]||'-'} | Tao: ${created}`);
+        if(c.order_id) lines.push(`      Don: ${c.order_id}`);
+        lines.push(`      Trang thai: ${statusLabels2[c.status]||'-'}`);
+      });
+    }
   }
   lines.push('');
 
-  // 4. KHIEU NAI NVC
+  // 4. KHIEU NAI NVC — tao hom nay + tat ca chua khieu nai
   lines.push('🚚 KHIEU NAI NHA VAN CHUYEN');
   lines.push(sep);
-  const todayNVC = state_nvcComplaints.filter(x=>(x.date||x.created_at?.split('T')[0])===todayStr);
-  if(todayNVC.length === 0) {
-    lines.push('   Khong co don NVC hom nay ✓');
+  const todayNewNVC = state_nvcComplaints.filter(x=>(x.date||x.created_at?.split('T')[0])===todayStr);
+  const pendingNVC = state_nvcComplaints.filter(x=>!x.is_complained && (x.date||x.created_at?.split('T')[0])!==todayStr);
+
+  if(todayNewNVC.length === 0 && pendingNVC.length === 0) {
+    lines.push('   Khong co don NVC nao can xu ly ✓');
   } else {
-    todayNVC.forEach((x,i)=>{
-      const shop=state.shops.find(s=>s.id===x.shop_id);
-      lines.push(`   ${i+1}. ${shop?.name||'-'} | ${x.carrier||'-'} | ${x.tracking_code||'-'}`);
-      lines.push(`      Trang thai: ${x.is_complained?'Da khieu nai ✅':'Chua khieu nai ⚠️'}`);
-      if(x.notes) lines.push(`      Ghi chu: ${x.notes}`);
-    });
-    const chua = todayNVC.filter(x=>!x.is_complained).length;
-    if(chua>0) lines.push(`   ⚠️ Con ${chua} don chua khieu nai!`);
+    if(todayNewNVC.length > 0) {
+      lines.push('   [MOI HOM NAY]');
+      todayNewNVC.forEach((x,i)=>{
+        const shop=state.shops.find(s=>s.id===x.shop_id);
+        lines.push(`   ${i+1}. ${shop?.name||'-'} | ${x.carrier||'-'} | ${x.tracking_code||'-'}`);
+        lines.push(`      Trang thai: ${x.is_complained?'Da khieu nai ✅':'Chua khieu nai ⚠️'}`);
+        if(x.notes) lines.push(`      Ghi chu: ${x.notes}`);
+      });
+    }
+    if(pendingNVC.length > 0) {
+      lines.push(`   [CHUA KHIEU NAI — ${pendingNVC.length} don]`);
+      pendingNVC.forEach((x,i)=>{
+        const shop=state.shops.find(s=>s.id===x.shop_id);
+        lines.push(`   ${i+1}. ${shop?.name||'-'} | ${x.carrier||'-'} | ${x.tracking_code||'-'}`);
+        if(x.notes) lines.push(`      Ghi chu: ${x.notes}`);
+      });
+    }
   }
 
   lines.push('');
@@ -2477,12 +2535,8 @@ async function copyDailyReport() {
 
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(()=>{
-    // Flash nut NVC neu dang o trang do
-    const btn1 = document.querySelector('[onclick="copyDailyReport()"]');
-    if(btn1){ const orig=btn1.innerHTML; btn1.innerHTML='✓ Da copy!'; btn1.style.color='var(--green)'; setTimeout(()=>{btn1.innerHTML=orig;btn1.style.color='';},2500); }
-    // Flash nut sidebar
     const btn2 = document.getElementById('dailyReportBtn');
-    if(btn2 && btn2!==btn1){ const orig=btn2.innerHTML; btn2.innerHTML='<span>✓ Da copy!</span>'; btn2.style.color='var(--green)'; setTimeout(()=>{btn2.innerHTML=orig;btn2.style.color='';},2500); }
+    if(btn2){ const orig=btn2.innerHTML; btn2.innerHTML='<span style="font-size:14px">✓</span><span>Da copy!</span>'; btn2.style.color='var(--green)'; setTimeout(()=>{btn2.innerHTML=orig;btn2.style.color='';},2500); }
   }).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Da copy! Paste vao Zalo.'); });
 }
 // ==================== END NVC ====================
@@ -3933,6 +3987,7 @@ async function saveComplaint() {
     closeModal('complaintModal');
     await loadComplaints();
     renderComplaints();
+    updateBadges();
   } catch(err) {
     alert('Loi luu khieu nai: ' + (err.message||JSON.stringify(err)));
   }
