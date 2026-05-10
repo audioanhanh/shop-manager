@@ -338,6 +338,15 @@ tr:hover td { background: var(--bg3); }
         <span>Thanh vien</span>
       </div>
     </nav>
+    <div style="padding:10px 12px;border-top:1px solid var(--border)">
+      <button onclick="copyDailyReport()" id="dailyReportBtn"
+        style="width:100%;background:linear-gradient(135deg,#1a2540,#1e2d4a);border:1px solid #2a4070;border-radius:var(--r);padding:9px 10px;cursor:pointer;color:var(--text2);font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;font-family:inherit;transition:all .15s"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'"
+        onmouseout="this.style.borderColor='#2a4070';this.style.color='var(--text2)'">
+        <span style="font-size:14px">📋</span>
+        <span>Bao cao ngay</span>
+      </button>
+    </div>
     <div class="user-info" style="cursor:pointer" onclick="logout()" title="Dang xuat">
       <div class="user-name" id="userName">Admin</div>
       <div class="user-role" id="userRole">Quan tri vien</div>
@@ -634,8 +643,7 @@ tr:hover td { background: var(--bg3); }
           <div class="page-sub">Theo doi don hang bi tra khong, khieu nai nha van chuyen</div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" onclick="copyDailyReport()" style="border-color:#2a4070;color:var(--text2)">📋 Copy bao cao ngay</button>
-          <button class="btn btn-primary" onclick="openNvcModal()">+ Them don</button>
+        <button class="btn btn-primary" onclick="openNvcModal()">+ Them don</button>
         </div>
       </div>
 
@@ -2469,8 +2477,12 @@ async function copyDailyReport() {
 
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(()=>{
-    const btn = document.querySelector('[onclick="copyDailyReport()"]');
-    if(btn){ const orig=btn.innerHTML; btn.innerHTML='✓ Da copy!'; btn.style.color='var(--green)'; setTimeout(()=>{btn.innerHTML=orig;btn.style.color='';},2500); }
+    // Flash nut NVC neu dang o trang do
+    const btn1 = document.querySelector('[onclick="copyDailyReport()"]');
+    if(btn1){ const orig=btn1.innerHTML; btn1.innerHTML='✓ Da copy!'; btn1.style.color='var(--green)'; setTimeout(()=>{btn1.innerHTML=orig;btn1.style.color='';},2500); }
+    // Flash nut sidebar
+    const btn2 = document.getElementById('dailyReportBtn');
+    if(btn2 && btn2!==btn1){ const orig=btn2.innerHTML; btn2.innerHTML='<span>✓ Da copy!</span>'; btn2.style.color='var(--green)'; setTimeout(()=>{btn2.innerHTML=orig;btn2.style.color='';},2500); }
   }).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Da copy! Paste vao Zalo.'); });
 }
 // ==================== END NVC ====================
