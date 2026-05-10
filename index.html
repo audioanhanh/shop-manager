@@ -1116,17 +1116,19 @@ tr:hover td { background: var(--bg3); }
     <div class="modal-title">Them Don Gui Sai Hang</div>
     <input type="hidden" id="woId"/>
 
-    <!-- Shop panel - hien het khong cuon -->
+    <!-- Shop panel -->
     <div class="form-group">
       <label class="form-label">Chon Shop *</label>
       <div id="woShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px"></div>
     </div>
 
+    <!-- Nhan vien soan -->
+    <div class="form-group">
+      <label class="form-label">Nhan vien soan (co the chon nhieu nguoi)</label>
+      <div id="woStaffPanel" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px"></div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group">
-        <label class="form-label">Ngay ghi nhan *</label>
-        <input class="form-input" type="date" id="woDate"/>
-      </div>
       <div class="form-group">
         <label class="form-label">Ma don hang *</label>
         <input class="form-input" type="text" id="woOrder" placeholder="VD: SP123456789"/>
@@ -1148,20 +1150,14 @@ tr:hover td { background: var(--bg3); }
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group">
-        <label class="form-label">Ket qua xu ly</label>
-        <select class="form-input" id="woResult">
-          <option value="pending">Dang xu ly</option>
-          <option value="resend">Gui lai hang</option>
-          <option value="refund">Hoan tien</option>
-          <option value="other">Khac</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nguoi xu ly</label>
-        <input class="form-input" type="text" id="woHandler" placeholder="Ten nguoi xu ly"/>
-      </div>
+    <div class="form-group">
+      <label class="form-label">Ket qua xu ly</label>
+      <select class="form-input" id="woResult" style="max-width:200px">
+        <option value="pending">Dang xu ly</option>
+        <option value="resend">Gui lai hang</option>
+        <option value="refund">Hoan tien</option>
+        <option value="other">Khac</option>
+      </select>
     </div>
 
     <div class="form-group">
@@ -3060,12 +3056,11 @@ async function loadWrongOrders() {
 
 function openWrongOrderModal(id = null) {
   document.getElementById('woId').value = id || '';
-  document.getElementById('woDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('woOrder').value = '';
+  document.getElementById('woTracking').value = '';
   document.getElementById('woCorrect').value = '';
   document.getElementById('woActual').value = '';
   document.getElementById('woResult').value = 'pending';
-  document.getElementById('woHandler').value = currentUser?.name || '';
   document.getElementById('woNotes').value = '';
 
   // Render shop panel
@@ -3077,22 +3072,44 @@ function openWrongOrderModal(id = null) {
       <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]}</span>
     </div>`).join('');
 
+  // Render staff panel - tat ca thanh vien
+  const staffPanel = document.getElementById('woStaffPanel');
+  staffPanel.innerHTML = state.members.map(m => `
+    <div onclick="toggleWoStaff(this,'${m.id}')" data-member-id="${m.id}"
+      style="padding:6px 14px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;background:var(--bg3);color:var(--text);transition:all .15s;display:flex;align-items:center;gap:6px">
+      <span style="width:22px;height:22px;border-radius:50%;background:${m.color||'var(--accent)'};display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">${m.name?.charAt(0)||'?'}</span>
+      ${m.name}
+    </div>`).join('');
+
   if(id) {
     const wo = state_wrongOrders.find(w=>w.id===id);
     if(wo) {
-      document.getElementById('woDate').value = wo.date || '';
       document.getElementById('woOrder').value = wo.order_id || '';
+      document.getElementById('woTracking').value = wo.tracking_code || '';
       document.getElementById('woCorrect').value = wo.correct_item || '';
       document.getElementById('woActual').value = wo.actual_item || '';
       document.getElementById('woResult').value = wo.result || 'pending';
-      document.getElementById('woHandler').value = wo.handler || '';
       document.getElementById('woNotes').value = wo.notes || '';
       // Chon shop
       const tile = panel.querySelector(`[data-shop-id="${wo.shop_id}"]`);
       if(tile) toggleWoShop(tile, wo.shop_id);
+      // Chon nhan vien
+      const staffIds = wo.staff_ids || [];
+      staffIds.forEach(sid => {
+        const el = staffPanel.querySelector(`[data-member-id="${sid}"]`);
+        if(el) toggleWoStaff(el, sid);
+      });
     }
   }
   openModal('wrongOrderModal');
+}
+
+function toggleWoStaff(el, memberId) {
+  const selected = el.dataset.selected === 'true';
+  el.dataset.selected = selected ? '' : 'true';
+  el.style.background = selected ? 'var(--bg3)' : '#4f7fff22';
+  el.style.borderColor = selected ? 'var(--border)' : 'var(--accent)';
+  el.style.color = selected ? 'var(--text)' : 'var(--accent)';
 }
 
 function toggleWoShop(el, shopId) {
@@ -3112,17 +3129,22 @@ async function saveWrongOrder() {
   const shopId = shopEl.dataset.shopId;
   const date = document.getElementById('woDate').value;
   const orderId = document.getElementById('woOrder').value.trim();
-  if(!date || !orderId) { alert('Vui long nhap ngay va ma don hang'); return; }
+  if(!orderId) { alert('Vui long nhap ma don hang'); return; }
+
+  // Lay danh sach nhan vien duoc chon
+  const staffIds = Array.from(document.querySelectorAll('#woStaffPanel [data-selected="true"]'))
+    .map(el=>el.dataset.memberId).filter(Boolean);
 
   const data = {
     shop_id: shopId,
-    date,
+    date: new Date().toISOString().split('T')[0],
     order_id: orderId,
     tracking_code: document.getElementById('woTracking')?.value.trim()||null,
     correct_item: document.getElementById('woCorrect').value.trim(),
     actual_item: document.getElementById('woActual').value.trim(),
     result: document.getElementById('woResult').value,
-    handler: document.getElementById('woHandler').value.trim(),
+    staff_ids: staffIds.length > 0 ? staffIds : null,
+    handler: currentUser?.name || null,
     notes: document.getElementById('woNotes').value.trim(),
     created_by: currentUser?.id || null
   };
