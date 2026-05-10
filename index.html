@@ -604,53 +604,6 @@ tr:hover td { background: var(--bg3); }
           Them chien luoc
         </button>
       </div>
-
-      <!-- Dashboard Sapo -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">Dashboard xuat kho — Bao cao Sapo</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Upload file so kho Sapo (.xlsx) de cap nhat du lieu</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select class="form-input" id="sapoPeriod" style="width:130px" onchange="renderSapoDashboard()">
-              <option value="30">30 ngay qua</option>
-              <option value="7">7 ngay qua</option>
-              <option value="month">Thang nay</option>
-              <option value="last_month">Thang truoc</option>
-            </select>
-            <label style="background:var(--accent);color:#fff;padding:7px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
-              📤 Upload file Sapo
-              <input type="file" accept=".xlsx" onchange="uploadSapoFile(this)" style="display:none"/>
-            </label>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" id="sapoStats">
-          <div class="stat-card"><div class="stat-label">Tong xuat kho</div><div class="stat-value" id="sapo-total">--</div></div>
-          <div class="stat-card"><div class="stat-label">SKU ban chay nhat</div><div class="stat-value" style="font-size:13px" id="sapo-top-sku">--</div></div>
-          <div class="stat-card"><div class="stat-label">Kho Tram Anh</div><div class="stat-value" id="sapo-ta">--</div></div>
-          <div class="stat-card"><div class="stat-label">Kho Hoang Long</div><div class="stat-value" id="sapo-hl">--</div></div>
-        </div>
-
-        <!-- Bieu do + bang -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <!-- Bieu do theo ngay -->
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Xuat kho theo ngay</div>
-            <div id="sapoChartWrap" style="height:160px;display:flex;align-items:flex-end;gap:3px;overflow-x:auto"></div>
-          </div>
-          <!-- Top SKU -->
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Top SKU xuat nhieu nhat</div>
-            <div id="sapoTopSku" style="display:flex;flex-direction:column;gap:6px"></div>
-          </div>
-        </div>
-
-        <div id="sapoUploadStatus" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
-      </div>
-
       <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
         <!-- Panel trai -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:0">
@@ -1881,12 +1834,92 @@ async function loadSapoSales() {
   state_sapoSales = data || [];
 }
 
-async function uploadSapoFile(input) {
+function renderStrategyDashboard(strategyId) {
+  const el = document.getElementById(`sapo-dash-${strategyId}`);
+  if(!el) return;
+
+  const goals = state_goals.filter(g=>g.strategy_id===strategyId);
+  const skus = goals.filter(g=>g.sku).map(g=>g.sku);
+  const period = document.getElementById(`sapoPeriod-${strategyId}`)?.value || '30';
+  const now = new Date();
+
+  // Loc du lieu theo SKU va period
+  let data = state_sapoSales.filter(r => {
+    if(!r.date) return false;
+    if(skus.length > 0 && !skus.includes(r.sku)) return false;
+    const d = new Date(r.date);
+    if(period==='7') { const c=new Date(now); c.setDate(now.getDate()-7); return d>=c; }
+    if(period==='30') { const c=new Date(now); c.setDate(now.getDate()-30); return d>=c; }
+    if(period==='month') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(period==='last_month') { const lm=new Date(now.getFullYear(),now.getMonth()-1,1); return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear(); }
+    return true;
+  });
+
+  if(state_sapoSales.length === 0) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Upload file Sapo de xem du lieu</div>`;
+    return;
+  }
+
+  const total = data.reduce((s,r)=>s+r.qty_out,0);
+  const ta = data.filter(r=>r.warehouse?.includes('Trâm Anh')).reduce((s,r)=>s+r.qty_out,0);
+  const hl = data.filter(r=>r.warehouse?.includes('Hoàng Long')).reduce((s,r)=>s+r.qty_out,0);
+
+  // Kiem tra % dat muc tieu
+  let targetHtml = '';
+  goals.filter(g=>g.target_qty&&g.sku).forEach(g=>{
+    const periodLabels={month:'thang',week:'tuan',quarter:'quy',year:'nam'};
+    const achieved = data.filter(r=>r.sku===g.sku).reduce((s,r)=>s+r.qty_out,0);
+    const pct = Math.min(Math.round((achieved/g.target_qty)*100),100);
+    const color = pct>=100?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+    targetHtml += `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="color:var(--text2)">${g.content}</span>
+        <span style="font-weight:600;color:${color}">${achieved}/${g.target_qty} ${g.unit||''}/${periodLabels[g.period]||''} (${pct}%)</span>
+      </div>
+      <div style="background:var(--bg4);border-radius:4px;height:8px">
+        <div style="background:${color};border-radius:4px;height:8px;width:${pct}%;transition:width .5s"></div>
+      </div>
+    </div>`;
+  });
+
+  // Bieu do theo ngay
+  const dayMap = {};
+  data.forEach(r=>{ if(r.date) dayMap[r.date]=(dayMap[r.date]||0)+r.qty_out; });
+  const days = Object.keys(dayMap).sort().slice(-30);
+  const maxVal = Math.max(...days.map(d=>dayMap[d]),1);
+  const chartHtml = days.length===0
+    ? `<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Chua co du lieu trong giai doan nay</div>`
+    : days.map(d=>{
+        const val=dayMap[d]; const h=Math.round((val/maxVal)*100);
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:16px" title="${d}: ${val}">
+          <span style="font-size:9px;color:var(--text3)">${val>0?val:''}</span>
+          <div style="background:var(--accent);border-radius:2px 2px 0 0;width:100%;height:${h}px;min-height:${val>0?2:0}px;opacity:.8"></div>
+          <span style="font-size:9px;color:var(--text3);writing-mode:vertical-rl;transform:rotate(180deg);max-height:28px;overflow:hidden">${d.slice(5)}</span>
+        </div>`;
+      }).join('');
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div class="stat-card"><div class="stat-label">Tong xuat kho</div><div class="stat-value">${total}</div></div>
+      <div class="stat-card"><div class="stat-label">Kho Tram Anh</div><div class="stat-value">${ta}</div></div>
+      <div class="stat-card"><div class="stat-label">Kho Hoang Long</div><div class="stat-value">${hl}</div></div>
+    </div>
+    ${targetHtml?`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">% Dat muc tieu</div>
+      ${targetHtml}
+    </div>`:''}
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Xuat kho theo ngay</div>
+      <div style="height:120px;display:flex;align-items:flex-end;gap:2px;overflow-x:auto">${chartHtml}</div>
+    </div>`;
+}
+
+async function uploadSapoFile(input, strategyId) {
   const file = input.files[0];
   if(!file) return;
-  const status = document.getElementById('sapoUploadStatus');
-  status.textContent = '⏳ Dang xu ly file...';
-  status.style.color = 'var(--text2)';
+  const statusId = strategyId ? `sapo-status-${strategyId}` : 'sapoUploadStatus';
+  const status = document.getElementById(statusId);
+  if(status) { status.textContent = '⏳ Dang xu ly file...'; status.style.color='var(--text2)'; }
 
   try {
     const XLSX = await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
@@ -1952,12 +1985,13 @@ async function uploadSapoFile(input) {
     }
 
     await loadSapoSales();
-    renderSapoDashboard();
-    status.textContent = `✓ Da xu ly ${dataRows.length} dong, cap nhat ${inserted} ban ghi. File: ${file.name}`;
-    status.style.color = 'var(--green)';
+    if(strategyId) renderStrategyDashboard(strategyId);
+    else renderSapoDashboard();
+    const msg = `✓ Da xu ly ${dataRows.length} dong, cap nhat ${inserted} ban ghi. File: ${file.name}`;
+    if(status) { status.textContent = msg; status.style.color='var(--green)'; }
   } catch(err) {
-    status.textContent = '❌ Loi: ' + err.message;
-    status.style.color = 'var(--red)';
+    const msg = '❌ Loi: ' + err.message;
+    if(status) { status.textContent = msg; status.style.color='var(--red)'; }
     console.error(err);
   }
   input.value = '';
@@ -2149,6 +2183,38 @@ function renderStrategyContent() {
     </tr>`;
   }).join('');
 
+  // Lay tat ca SKU cua chien luoc nay
+  const strategySkus = goals.filter(g=>g.sku).map(g=>g.sku);
+
+  // Dashboard Sapo cho chien luoc nay
+  const sapoSection = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">📊 Dashboard do luong</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">
+            ${strategySkus.length>0 ? `Loc theo SKU: ${strategySkus.join(', ')}` : 'Chua co SKU — them SKU vao muc tieu de loc du lieu'}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input" id="sapoPeriod-${strategy.id}" style="width:130px" onchange="renderStrategyDashboard('${strategy.id}')">
+            <option value="30">30 ngay qua</option>
+            <option value="7">7 ngay qua</option>
+            <option value="month">Thang nay</option>
+            <option value="last_month">Thang truoc</option>
+          </select>
+          <label style="background:var(--accent);color:#fff;padding:6px 12px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+            📤 Upload Sapo
+            <input type="file" accept=".xlsx" onchange="uploadSapoFile(this,'${strategy.id}')" style="display:none"/>
+          </label>
+        </div>
+      </div>
+      <div id="sapo-dash-${strategy.id}">
+        <div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Upload file Sapo de xem du lieu</div>
+      </div>
+      <div id="sapo-status-${strategy.id}" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
+    </div>`;
+
   el.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:18px;font-weight:600;color:var(--text)">${strategy.name}</div>
@@ -2157,6 +2223,8 @@ function renderStrategyContent() {
         <button onclick="deleteStrategy('${strategy.id}')" class="btn btn-ghost btn-sm" style="color:var(--red)">Xoa</button>
       </div>`:''}
     </div>
+
+    ${sapoSection}
 
     <!-- Muc tieu -->
     <div style="margin-bottom:16px">
@@ -2182,6 +2250,9 @@ function renderStrategyContent() {
         </div>
       </div>
     </div>`;
+
+  // Render dashboard neu co du lieu
+  setTimeout(()=>renderStrategyDashboard(strategy.id), 100);
 }
 
 function editShopPlan(shopId, field, currentValue, el) {
@@ -3568,7 +3639,7 @@ function openModal(id, isEdit) {
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+// Khong dong modal khi click ra ngoai — phai bam X hoac Huy
 
 // NAV
 function showPage(name, evt) {
