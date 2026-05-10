@@ -2675,15 +2675,21 @@ async function saveWrongOrder() {
     created_by: currentUser?.id || null
   };
 
-  const id = document.getElementById('woId').value;
-  if(id) {
-    await sb.from('wrong_orders').update(data).eq('id', id);
-  } else {
-    await sb.from('wrong_orders').insert(data);
+  try {
+    const id = document.getElementById('woId').value;
+    if(id) {
+      const {error} = await sb.from('wrong_orders').update(data).eq('id', id);
+      if(error) throw error;
+    } else {
+      const {error} = await sb.from('wrong_orders').insert(data);
+      if(error) throw error;
+    }
+    closeModal('wrongOrderModal');
+    await loadWrongOrders();
+    renderWrongOrders();
+  } catch(err) {
+    alert('Loi luu don sai hang: ' + (err.message||JSON.stringify(err)));
   }
-  closeModal('wrongOrderModal');
-  await loadWrongOrders();
-  renderWrongOrders();
 }
 
 async function deleteWrongOrder(id) {
@@ -3298,10 +3304,10 @@ function renderComplaints() {
   const wins = state.complaints.filter(c=>c.result==='win').length;
   const totalAmount = state.complaints.filter(c=>c.amount).reduce((a,b)=>a+(b.amount||0),0);
   document.getElementById('complaintStats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Tong khieu nai</div><div class="stat-val">${total}</div></div>
-    <div class="stat-card"><div class="stat-label">Dang xu ly</div><div class="stat-val" style="color:var(--amber)">${pending}</div></div>
-    <div class="stat-card"><div class="stat-label">Da thang</div><div class="stat-val" style="color:var(--green)">${wins}</div></div>
-    <div class="stat-card"><div class="stat-label">Tong tien lien quan</div><div class="stat-val" style="font-size:18px">${fmtCurrency(totalAmount)}</div></div>
+    <div class="stat-card"><div class="stat-label">Tong khieu nai</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Dang xu ly</div><div class="stat-value" style="color:var(--amber)">${pending}</div></div>
+    <div class="stat-card"><div class="stat-label">Da thang</div><div class="stat-value" style="color:var(--green)">${wins}</div></div>
+    <div class="stat-card"><div class="stat-label">Tong tien lien quan</div><div class="stat-value" style="font-size:18px">${fmtCurrency(totalAmount)}</div></div>
   `;
   if(state.complaints.length===0){ tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-text">Chua co khieu nai nao</div></div></td></tr>`; return; }
   const typeLabels = { hang_loi:'Hang loi', giao_cham:'Giao cham', sai_ma:'Sai ma', thieu_hang:'Thieu hang', hoan_tien:'Hoan tien', khac:'Khac' };
@@ -3453,11 +3459,15 @@ async function saveComplaint() {
     evidence_notes: document.getElementById('complaintNotes').value.trim()||null
   };
   if(!data.complaint_type) return alert('Vui long chon loai khieu nai');
-  if(id) { await sb.from('complaints').update(data).eq('id',id); }
-  else { await sb.from('complaints').insert(data); }
-  closeModal('complaintModal');
-  await loadComplaints();
-  renderComplaints();
+  try {
+    if(id) { const {error} = await sb.from('complaints').update(data).eq('id',id); if(error) throw error; }
+    else { const {error} = await sb.from('complaints').insert(data); if(error) throw error; }
+    closeModal('complaintModal');
+    await loadComplaints();
+    renderComplaints();
+  } catch(err) {
+    alert('Loi luu khieu nai: ' + (err.message||JSON.stringify(err)));
+  }
 }
 
 async function saveWorklog() {
