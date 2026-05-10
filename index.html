@@ -1023,27 +1023,22 @@ tr:hover td { background: var(--bg3); }
       <input type="hidden" id="nvcCarrier"/>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group">
-        <label class="form-label">Ma van don *</label>
-        <input class="form-input" id="nvcTracking" placeholder="VD: SPXVN123456789"/>
+    <!-- Ma van don - nhap nhieu -->
+    <div class="form-group">
+      <label class="form-label">Ma van don (nhap xong bam Enter de them tiep)</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="nvcTrackingInput" placeholder="VD: SPXVN123456789"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addNvcTracking()}"
+          style="flex:1"/>
+        <button onclick="addNvcTracking()" type="button"
+          style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">+ Them</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Ngay ghi nhan</label>
-        <input class="form-input" type="date" id="nvcDate"/>
-      </div>
+      <div id="nvcTrackingList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
     </div>
 
     <div class="form-group">
       <label class="form-label">Ghi chu</label>
       <textarea class="form-input" id="nvcNotes" rows="2" placeholder="Mo ta tinh trang, so lan da khieu nai..."></textarea>
-    </div>
-
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="nvcIsComplained" style="width:16px;height:16px;accent-color:var(--accent)"/>
-        <span style="font-size:13px;color:var(--text)">Da khieu nai roi</span>
-      </label>
     </div>
 
     <div class="modal-footer">
@@ -2223,10 +2218,9 @@ function openNvcModal(id = null) {
   document.getElementById('nvcId').value = id || '';
   document.getElementById('nvcShopId').value = '';
   document.getElementById('nvcCarrier').value = '';
-  document.getElementById('nvcTracking').value = '';
-  document.getElementById('nvcDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nvcTrackingInput').value = '';
+  document.getElementById('nvcTrackingList').innerHTML = '';
   document.getElementById('nvcNotes').value = '';
-  document.getElementById('nvcIsComplained').checked = false;
 
   // Reset carrier buttons
   document.querySelectorAll('#nvcModal [data-carrier]').forEach(el => {
@@ -2247,12 +2241,11 @@ function openNvcModal(id = null) {
   if(id) {
     const item = state_nvcComplaints.find(x=>x.id===id);
     if(item) {
-      document.getElementById('nvcTracking').value = item.tracking_code||'';
-      document.getElementById('nvcDate').value = item.date||'';
       document.getElementById('nvcNotes').value = item.notes||'';
-      document.getElementById('nvcIsComplained').checked = item.is_complained||false;
       document.getElementById('nvcCarrier').value = item.carrier||'';
       document.getElementById('nvcShopId').value = item.shop_id||'';
+      // Them tracking vao list
+      if(item.tracking_code) addNvcTrackingCode(item.tracking_code);
       // Highlight carrier
       const carrierEl = document.querySelector(`#nvcModal [data-carrier="${item.carrier}"]`);
       if(carrierEl) selectNvcCarrier(carrierEl, item.carrier);
@@ -2262,6 +2255,29 @@ function openNvcModal(id = null) {
     }
   }
   openModal('nvcModal');
+  // Focus vao o nhap ma van don
+  setTimeout(()=>document.getElementById('nvcTrackingInput')?.focus(), 200);
+}
+
+function addNvcTracking() {
+  const input = document.getElementById('nvcTrackingInput');
+  const val = input.value.trim();
+  if(!val) return;
+  addNvcTrackingCode(val);
+  input.value = '';
+  input.focus();
+}
+
+function addNvcTrackingCode(code) {
+  const list = document.getElementById('nvcTrackingList');
+  // Kiem tra trung
+  const existing = Array.from(list.querySelectorAll('[data-code]')).map(el=>el.dataset.code);
+  if(existing.includes(code)) return;
+  const tag = document.createElement('div');
+  tag.dataset.code = code;
+  tag.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;font-family:monospace';
+  tag.innerHTML = `<span style="color:var(--text)">${code}</span><button onclick="this.parentElement.remove()" style="background:transparent;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0">×</button>`;
+  list.appendChild(tag);
 }
 
 function selectNvcShop(el, shopId) {
@@ -2283,28 +2299,35 @@ function selectNvcCarrier(el, carrier) {
 async function saveNvcComplaint() {
   const shopId = document.getElementById('nvcShopId').value;
   const carrier = document.getElementById('nvcCarrier').value;
-  const tracking = document.getElementById('nvcTracking').value.trim();
   if(!shopId) { alert('Vui long chon shop'); return; }
   if(!carrier) { alert('Vui long chon nha van chuyen'); return; }
-  if(!tracking) { alert('Vui long nhap ma van don'); return; }
 
-  const data = {
-    shop_id: shopId,
-    carrier,
-    tracking_code: tracking,
-    date: document.getElementById('nvcDate').value,
-    notes: document.getElementById('nvcNotes').value.trim()||null,
-    is_complained: document.getElementById('nvcIsComplained').checked,
-    created_by: currentUser?.id||null
-  };
+  // Lay tat ca ma van don tu list + o nhap neu con
+  const inputVal = document.getElementById('nvcTrackingInput').value.trim();
+  if(inputVal) addNvcTrackingCode(inputVal);
+  const trackingCodes = Array.from(document.querySelectorAll('#nvcTrackingList [data-code]')).map(el=>el.dataset.code);
+  if(trackingCodes.length === 0) { alert('Vui long nhap it nhat 1 ma van don'); return; }
+
+  const notes = document.getElementById('nvcNotes').value.trim()||null;
+  const today = new Date().toISOString().split('T')[0];
+  const id = document.getElementById('nvcId').value;
 
   try {
-    const id = document.getElementById('nvcId').value;
     if(id) {
-      const {error} = await sb.from('nvc_complaints').update(data).eq('id',id);
+      // Sua: chi cap nhat ban ghi dau tien
+      const {error} = await sb.from('nvc_complaints').update({
+        shop_id: shopId, carrier, tracking_code: trackingCodes[0],
+        notes, date: today, created_by: currentUser?.id||null
+      }).eq('id', id);
       if(error) throw error;
     } else {
-      const {error} = await sb.from('nvc_complaints').insert(data);
+      // Them moi: tao 1 ban ghi cho moi ma van don
+      const rows = trackingCodes.map(code => ({
+        shop_id: shopId, carrier, tracking_code: code,
+        notes, date: today, is_complained: false,
+        created_by: currentUser?.id||null
+      }));
+      const {error} = await sb.from('nvc_complaints').insert(rows);
       if(error) throw error;
     }
     closeModal('nvcModal');
