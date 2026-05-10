@@ -2281,11 +2281,10 @@ function addNvcTrackingCode(code) {
 }
 
 function selectNvcShop(el, shopId) {
-  document.querySelectorAll('#nvcShopPanel [data-shop-id]').forEach(t => {
-    t.style.background='var(--bg3)'; t.style.borderColor='var(--border)'; t.dataset.selected='';
-  });
-  el.style.background='#4f7fff22'; el.style.borderColor='var(--accent)'; el.dataset.selected='true';
-  document.getElementById('nvcShopId').value = shopId;
+  const selected = el.dataset.selected === 'true';
+  el.dataset.selected = selected ? '' : 'true';
+  el.style.background = selected ? 'var(--bg3)' : '#4f7fff22';
+  el.style.borderColor = selected ? 'var(--border)' : 'var(--accent)';
 }
 
 function selectNvcCarrier(el, carrier) {
@@ -2297,12 +2296,15 @@ function selectNvcCarrier(el, carrier) {
 }
 
 async function saveNvcComplaint() {
-  const shopId = document.getElementById('nvcShopId').value;
   const carrier = document.getElementById('nvcCarrier').value;
-  if(!shopId) { alert('Vui long chon shop'); return; }
   if(!carrier) { alert('Vui long chon nha van chuyen'); return; }
 
-  // Lay tat ca ma van don tu list + o nhap neu con
+  // Lay tat ca shop duoc chon
+  const selectedShops = Array.from(document.querySelectorAll('#nvcShopPanel [data-selected="true"]'))
+    .map(el=>el.dataset.shopId).filter(Boolean);
+  if(selectedShops.length === 0) { alert('Vui long chon it nhat 1 shop'); return; }
+
+  // Lay tat ca ma van don
   const inputVal = document.getElementById('nvcTrackingInput').value.trim();
   if(inputVal) addNvcTrackingCode(inputVal);
   const trackingCodes = Array.from(document.querySelectorAll('#nvcTrackingList [data-code]')).map(el=>el.dataset.code);
@@ -2314,19 +2316,21 @@ async function saveNvcComplaint() {
 
   try {
     if(id) {
-      // Sua: chi cap nhat ban ghi dau tien
+      // Sua: cap nhat ban ghi hien tai voi shop va ma dau tien
       const {error} = await sb.from('nvc_complaints').update({
-        shop_id: shopId, carrier, tracking_code: trackingCodes[0],
-        notes, date: today, created_by: currentUser?.id||null
+        shop_id: selectedShops[0], carrier, tracking_code: trackingCodes[0],
+        notes, date: today
       }).eq('id', id);
       if(error) throw error;
     } else {
-      // Them moi: tao 1 ban ghi cho moi ma van don
-      const rows = trackingCodes.map(code => ({
-        shop_id: shopId, carrier, tracking_code: code,
-        notes, date: today, is_complained: false,
-        created_by: currentUser?.id||null
-      }));
+      // Them moi: tao ban ghi cho moi cap shop x ma van don
+      const rows = [];
+      selectedShops.forEach(shopId => {
+        trackingCodes.forEach(code => {
+          rows.push({ shop_id: shopId, carrier, tracking_code: code,
+            notes, date: today, is_complained: false, created_by: currentUser?.id||null });
+        });
+      });
       const {error} = await sb.from('nvc_complaints').insert(rows);
       if(error) throw error;
     }
