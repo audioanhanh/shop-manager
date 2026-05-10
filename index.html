@@ -531,6 +531,9 @@ tr:hover td { background: var(--bg3); }
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Them Khieu nai
         </button>
+        <button class="btn btn-ghost" onclick="exportComplaints()" style="border-color:#2a4070;color:var(--text2)">
+          📋 Copy bao cao
+        </button>
       </div>
       <div id="complaintStats" class="stats-row" style="grid-template-columns:repeat(4,1fr)"></div>
       <div class="card">
@@ -576,8 +579,7 @@ tr:hover td { background: var(--bg3); }
           <option value="">Tat ca shop</option>
         </select>
         <button class="btn btn-ghost" onclick="exportWrongOrders()" style="margin-left:auto">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Xuat bao cao
+          📋 Copy bao cao
         </button>
       </div>
 
@@ -2785,13 +2787,83 @@ function exportWrongOrders() {
     if(period === 'last_month') { const lm = new Date(now.getFullYear(),now.getMonth()-1,1); return d.getMonth()===lm.getMonth() && d.getFullYear()===lm.getFullYear(); }
     return true;
   });
+
+  const periodLabels = { week:'Tuan nay', month:`Thang ${now.getMonth()+1}/${now.getFullYear()}`, last_month:`Thang ${now.getMonth()===0?12:now.getMonth()}/${now.getMonth()===0?now.getFullYear()-1:now.getFullYear()}`, all:'Tat ca' };
   const resultLabels = { pending:'Dang xu ly', resend:'Gui lai hang', refund:'Hoan tien', other:'Khac' };
-  const lines = ['Ngay\tShop\tMa don\tPhai gui\tThuc te gui\tKet qua\tNguoi xu ly\tGhi chu'];
-  filtered.forEach(w => {
+
+  const pending = filtered.filter(w=>w.result==='pending').length;
+  const resolved = filtered.filter(w=>w.result!=='pending').length;
+
+  const exportDate = now.toLocaleDateString('vi-VN');
+  const sep = '━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+
+  let lines = [];
+  lines.push('📋 BAO CAO GUI SAI HANG');
+  lines.push(`${periodLabels[period]||period} | Xuat: ${exportDate}`);
+  lines.push(sep);
+
+  filtered.forEach((w, i) => {
     const shop = state.shops.find(s=>s.id===w.shop_id);
-    lines.push([w.date, shop?.name||'', w.order_id||'', w.correct_item||'', w.actual_item||'', resultLabels[w.result]||'', w.handler||'', w.notes||''].join('\t'));
+    const date = w.date ? new Date(w.date).toLocaleDateString('vi-VN') : '-';
+    lines.push(`${i+1}. ${shop?.name||'-'} | ${date}`);
+    if(w.order_id) lines.push(`   Don hang: ${w.order_id}`);
+    if(w.tracking_code) lines.push(`   Van don: ${w.tracking_code}`);
+    if(w.correct_item) lines.push(`   Phai gui: ${w.correct_item}`);
+    if(w.actual_item) lines.push(`   Thuc te gui: ${w.actual_item}`);
+    lines.push(`   Ket qua: ${resultLabels[w.result]||w.result||'-'}`);
+    if(w.handler) lines.push(`   Xu ly: ${w.handler}`);
+    if(w.notes) lines.push(`   Ghi chu: ${w.notes}`);
+    lines.push(sep);
   });
-  navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Da copy bao cao vao clipboard. Paste vao Excel hoac Google Sheets.')).catch(()=>alert(lines.join('\n')));
+
+  lines.push(`Tong: ${filtered.length} don | Dang xu ly: ${pending} | Da giai quyet: ${resolved}`);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('[onclick="exportWrongOrders()"]');
+    if(btn){ const orig=btn.innerHTML; btn.innerHTML='✓ Da copy!'; btn.style.color='var(--green)'; setTimeout(()=>{btn.innerHTML=orig;btn.style.color='';},2000); }
+  }).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Da copy! Paste vao Zalo.'); });
+}
+
+function exportComplaints() {
+  const now = new Date();
+  const complaints = state.complaints;
+  if(complaints.length === 0) { alert('Chua co khieu nai nao de xuat.'); return; }
+
+  const typeLabels = { hang_loi:'Hang loi/hong', giao_cham:'Giao hang cham', sai_ma:'Sai ma/mau', thieu_hang:'Thieu hang', hoan_tien:'Yeu cau hoan tien', khac:'Khac' };
+  const statusLabels2 = { received:'Tiep nhan', processing:'Dang xu ly', submitted:'Da gui san', waiting:'Cho ket qua', resolved:'Da giai quyet' };
+  const resultLabels = { win:'Thang', lose:'Thua', refund:'Hoan tien', cancelled:'Huy' };
+
+  const pending = complaints.filter(c=>c.status!=='resolved').length;
+  const wins = complaints.filter(c=>c.result==='win').length;
+  const sep = '━━━━━━━━━━━━━━━━━━━━━━━━━━━';
+
+  let lines = [];
+  lines.push('📋 BAO CAO KHIEU NAI');
+  lines.push(`Xuat: ${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}`);
+  lines.push(sep);
+
+  complaints.forEach((c, i) => {
+    const shop = state.shops.find(s=>s.id===c.shop_id);
+    const date = c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : '-';
+    lines.push(`${i+1}. ${shop?.name||'-'} | ${date}`);
+    if(c.order_id) lines.push(`   Don hang: ${c.order_id}`);
+    if(c.tracking_code) lines.push(`   Van don: ${c.tracking_code}`);
+    lines.push(`   Loai: ${typeLabels[c.complaint_type]||c.complaint_type||'-'}`);
+    lines.push(`   Trang thai: ${statusLabels2[c.status]||c.status||'-'}`);
+    if(c.result) lines.push(`   Ket qua: ${resultLabels[c.result]||c.result}`);
+    if(c.amount) lines.push(`   So tien: ${c.amount.toLocaleString('vi-VN')}d`);
+    if(c.evidence_notes) lines.push(`   Ghi chu: ${c.evidence_notes}`);
+    lines.push(sep);
+  });
+
+  lines.push(`Tong: ${complaints.length} | Dang xu ly: ${pending} | Da thang: ${wins}`);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('[onclick="exportComplaints()"]');
+    if(btn){ const orig=btn.innerHTML; btn.innerHTML='✓ Da copy!'; btn.style.color='var(--green)'; setTimeout(()=>{btn.innerHTML=orig;btn.style.color='';},2000); }
+  }).catch(()=>{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('Da copy! Paste vao Zalo.'); });
 }
 
 // ==================== END WRONG ORDER ====================
