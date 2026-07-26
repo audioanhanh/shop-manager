@@ -1330,7 +1330,7 @@ tr:hover td { background: var(--bg3); }
 
     <div class="form-group">
       <label class="form-label">Chon Shop *</label>
-      <div id="invoiceShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:4px;padding:4px"></div>
+      <div id="invoiceShopPanel" style="padding:4px"></div>
       <input type="hidden" id="invoiceShopId"/>
       <div id="invoiceCategoryHint" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
     </div>
@@ -2621,17 +2621,38 @@ function openInvoiceTaskModal(defaultCategory, id = null) {
   document.getElementById('invoiceCategoryHint').textContent = '';
   document.getElementById('invoiceTaskModalTitle').textContent = id ? 'Sua Task Hoa don' : 'Them Task Hoa don';
 
-  // Render shop panel: tat ca shop + 1 the WEB rieng (WEB luon thuoc Hoang Long)
+  // Render shop panel: tach rieng cot Shopee / TikTok de de phan biet, ten day du khong cat, khong can cuon
   const panel = document.getElementById('invoiceShopPanel');
-  let html = state.shops.map(s => `
-    <div onclick="selectInvoiceShop(this,'${s.id}')" data-shop-id="${s.id}" title="${s.name}"
-      style="padding:5px 4px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:10.5px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s;overflow:hidden">
-      <span class="platform-dot dot-${s.platform}"></span><span style="color:var(--text);white-space:nowrap">${s.name}</span>
-    </div>`).join('');
+  const shopeeShops = state.shops.filter(s=>s.platform==='shopee');
+  const tiktokShops = state.shops.filter(s=>s.platform==='tiktok');
+  const otherShops = state.shops.filter(s=>s.platform!=='shopee'&&s.platform!=='tiktok');
+
+  function shopTile(s) {
+    return `<div onclick="selectInvoiceShop(this,'${s.id}')" data-shop-id="${s.id}"
+      style="padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:500;background:var(--bg3);transition:all .15s;display:flex;align-items:center;gap:6px;line-height:1.3;margin-bottom:5px">
+      <span class="platform-dot dot-${s.platform}" style="flex-shrink:0"></span><span style="color:var(--text);word-break:break-word">${s.name}</span>
+    </div>`;
+  }
+
+  let html = `<div style="display:flex;gap:14px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:700;color:#fb923c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)">🟠 Shopee (${shopeeShops.length})</div>
+      ${shopeeShops.map(shopTile).join('')}
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)">🟢 TikTok (${tiktokShops.length})</div>
+      ${tiktokShops.map(shopTile).join('')}
+    </div>
+  </div>`;
+
+  if(otherShops.length) {
+    html += `<div style="margin-top:10px">${otherShops.map(shopTile).join('')}</div>`;
+  }
+
   html += `
-    <div onclick="selectInvoiceShop(this,'WEB')" data-shop-id="WEB" title="Don Website"
-      style="padding:5px 4px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:10.5px;font-weight:600;text-align:center;background:var(--bg3);transition:all .15s;overflow:hidden">
-      <span style="color:var(--purple)">🌐 WEB</span>
+    <div onclick="selectInvoiceShop(this,'WEB')" data-shop-id="WEB"
+      style="margin-top:10px;padding:7px 10px;border:1px dashed var(--purple);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:700;text-align:center;background:#a78bfa1a;color:var(--purple);transition:all .15s">
+      🌐 Don Website (WEB)
     </div>`;
   panel.innerHTML = html;
 
