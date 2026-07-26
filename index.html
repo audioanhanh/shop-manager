@@ -1324,7 +1324,7 @@ tr:hover td { background: var(--bg3); }
 
     <div class="form-group">
       <label class="form-label">Chon Shop *</label>
-      <div id="invoiceShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px;max-height:260px;overflow-y:auto"></div>
+      <div id="invoiceShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:4px;padding:4px"></div>
       <input type="hidden" id="invoiceShopId"/>
       <div id="invoiceCategoryHint" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
     </div>
@@ -2618,16 +2618,14 @@ function openInvoiceTaskModal(defaultCategory, id = null) {
   // Render shop panel: tat ca shop + 1 the WEB rieng (WEB luon thuoc Hoang Long)
   const panel = document.getElementById('invoiceShopPanel');
   let html = state.shops.map(s => `
-    <div onclick="selectInvoiceShop(this,'${s.id}')" data-shop-id="${s.id}"
-      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
-      <div style="color:var(--text)">${s.name}</div>
-      <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]||s.platform}</span>
+    <div onclick="selectInvoiceShop(this,'${s.id}')" data-shop-id="${s.id}" title="${s.name}"
+      style="padding:5px 4px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:10.5px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s;overflow:hidden">
+      <span class="platform-dot dot-${s.platform}"></span><span style="color:var(--text);white-space:nowrap">${s.name}</span>
     </div>`).join('');
   html += `
-    <div onclick="selectInvoiceShop(this,'WEB')" data-shop-id="WEB"
-      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
-      <div style="color:var(--text)">Don Website</div>
-      <span class="badge badge-person" style="font-size:10px;margin-top:3px">WEB</span>
+    <div onclick="selectInvoiceShop(this,'WEB')" data-shop-id="WEB" title="Don Website"
+      style="padding:5px 4px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:10.5px;font-weight:600;text-align:center;background:var(--bg3);transition:all .15s;overflow:hidden">
+      <span style="color:var(--purple)">🌐 WEB</span>
     </div>`;
   panel.innerHTML = html;
 
