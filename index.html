@@ -334,6 +334,16 @@ tr:hover td { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span>San luong</span>
       </div>
+      <div class="nav-item" onclick="showPage('hd-tram-anh',event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>HD Tram Anh</span>
+        <span id="badge-hd-ta" style="display:none;background:#e24b4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px;text-align:center"></span>
+      </div>
+      <div class="nav-item" onclick="showPage('hd-hoang-long',event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>HD Hoang Long</span>
+        <span id="badge-hd-hl" style="display:none;background:#e24b4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px;text-align:center"></span>
+      </div>
       <div class="nav-divider"></div>
       <div class="nav-item" onclick="showPage('members',event)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -604,6 +614,74 @@ tr:hover td { background: var(--bg3); }
           <table>
             <thead><tr><th>Ngay</th><th>Shop</th><th>Ma don</th><th>Phai gui</th><th>Thuc te gui</th><th>Ket qua</th><th>Nguoi nhap</th><th>Ghi chu</th><th></th></tr></thead>
             <tbody id="wrongOrderTable"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- HD TRAM ANH -->
+    <div class="page" id="page-hd-tram-anh">
+      <div class="page-header">
+        <div>
+          <div class="page-title">HD Tram Anh</div>
+          <div class="page-sub">Task dieu chinh hoa don dien tu bi hoan tra 1 phan - nhom Tram Anh</div>
+        </div>
+        <button class="btn btn-primary" onclick="openInvoiceTaskModal('tram_anh')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Them Task Hoa don
+        </button>
+      </div>
+      <div id="hdTaStats" class="stats-row" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select class="form-input" style="width:180px" id="hdTaFilterAssignee" onchange="renderInvoiceTasks('tram_anh')">
+          <option value="">Tat ca nguoi xu ly</option>
+        </select>
+        <select class="form-input" style="width:160px" id="hdTaFilterStatus" onchange="renderInvoiceTasks('tram_anh')">
+          <option value="">Tat ca trang thai</option>
+          <option value="chua_xu_ly">Chua xu ly</option>
+          <option value="dang_xu_ly">Dang xu ly</option>
+          <option value="xong">Xong</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ngay tao</th><th>Shop</th><th>Ma don</th><th>Nguoi xu ly</th><th>Trang thai</th><th>Ghi chu</th><th></th></tr></thead>
+            <tbody id="hdTaTable"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- HD HOANG LONG -->
+    <div class="page" id="page-hd-hoang-long">
+      <div class="page-header">
+        <div>
+          <div class="page-title">HD Hoang Long</div>
+          <div class="page-sub">Task dieu chinh hoa don dien tu bi hoan tra 1 phan - nhom Hoang Long</div>
+        </div>
+        <button class="btn btn-primary" onclick="openInvoiceTaskModal('hoang_long')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Them Task Hoa don
+        </button>
+      </div>
+      <div id="hdHlStats" class="stats-row" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select class="form-input" style="width:180px" id="hdHlFilterAssignee" onchange="renderInvoiceTasks('hoang_long')">
+          <option value="">Tat ca nguoi xu ly</option>
+        </select>
+        <select class="form-input" style="width:160px" id="hdHlFilterStatus" onchange="renderInvoiceTasks('hoang_long')">
+          <option value="">Tat ca trang thai</option>
+          <option value="chua_xu_ly">Chua xu ly</option>
+          <option value="dang_xu_ly">Dang xu ly</option>
+          <option value="xong">Xong</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ngay tao</th><th>Shop</th><th>Ma don</th><th>Nguoi xu ly</th><th>Trang thai</th><th>Ghi chu</th><th></th></tr></thead>
+            <tbody id="hdHlTable"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Dang tai...</div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1237,6 +1315,51 @@ tr:hover td { background: var(--bg3); }
   </div>
 </div>
 
+<!-- INVOICE TASK MODAL (HD) -->
+<div class="modal-overlay" id="invoiceTaskModal">
+  <div class="modal" style="max-width:720px;width:95vw">
+    <div class="modal-title" id="invoiceTaskModalTitle">Them Task Hoa don</div>
+    <input type="hidden" id="invoiceTaskId"/>
+    <input type="hidden" id="invoiceTaskCategory"/>
+
+    <div class="form-group">
+      <label class="form-label">Chon Shop *</label>
+      <div id="invoiceShopPanel" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:4px;max-height:260px;overflow-y:auto"></div>
+      <input type="hidden" id="invoiceShopId"/>
+      <div id="invoiceCategoryHint" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ma don hang (nhap xong bam Enter de them tiep, co the them nhieu ma)</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="invoiceOrderInput" placeholder="VD: ORD123456789"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addInvoiceOrderCode()}"
+          style="flex:1"/>
+        <button onclick="addInvoiceOrderCode()" type="button"
+          style="background:var(--accent);border:none;color:#fff;padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">+ Them</button>
+      </div>
+      <div id="invoiceOrderList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nguoi xu ly *</label>
+      <select class="form-select" id="invoiceAssignee">
+        <option value="">Chon nguoi xu ly...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ghi chu</label>
+      <textarea class="form-textarea" id="invoiceNote" placeholder="VD: Don hoan tra 1 phan, can dieu chinh giam so luong/tien tren hoa don..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('invoiceTaskModal')">Huy</button>
+      <button class="btn btn-primary" onclick="saveInvoiceTask()">Luu</button>
+    </div>
+  </div>
+</div>
+
 <!-- WORKLOG MODAL -->
 <div class="modal-overlay" id="worklogModal">
   <div class="modal">
@@ -1436,7 +1559,7 @@ function initDatetime() {
 }
 
 async function loadAll() {
-  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies(), loadSapoSales(), loadNvcComplaints()]);
+  await Promise.all([loadBranches(), loadMembers(), loadShops(), loadProducts(), loadTasks(), loadComplaints(), loadWorklogs(), loadWorkCategories(), loadProductTitles(), loadWrongOrders(), loadStrategies(), loadSapoSales(), loadNvcComplaints(), loadInvoiceTasks()]);
   renderDaily();
   renderShops();
   renderProducts();
@@ -1448,6 +1571,8 @@ async function loadAll() {
   populateSelects();
   initCalGrid4();
   renderProgress4();
+  renderInvoiceTasks('tram_anh');
+  renderInvoiceTasks('hoang_long');
   updateBadges();
 }
 
@@ -2446,6 +2571,253 @@ function updateBadges() {
       badgeN.style.display = 'none';
     }
   }
+
+  // HD Tram Anh / HD Hoang Long: dem task chua xong
+  const pendingHdTa = state_invoiceTasks.filter(x=>x.category==='tram_anh' && x.status!=='xong');
+  const badgeHdTa = document.getElementById('badge-hd-ta');
+  if(badgeHdTa) {
+    if(pendingHdTa.length > 0) { badgeHdTa.textContent = pendingHdTa.length; badgeHdTa.style.display = 'inline-block'; }
+    else { badgeHdTa.style.display = 'none'; }
+  }
+  const pendingHdHl = state_invoiceTasks.filter(x=>x.category==='hoang_long' && x.status!=='xong');
+  const badgeHdHl = document.getElementById('badge-hd-hl');
+  if(badgeHdHl) {
+    if(pendingHdHl.length > 0) { badgeHdHl.textContent = pendingHdHl.length; badgeHdHl.style.display = 'inline-block'; }
+    else { badgeHdHl.style.display = 'none'; }
+  }
+}
+
+// ==================== HD TRAM ANH / HD HOANG LONG (INVOICE TASKS) ====================
+let state_invoiceTasks = [];
+
+async function loadInvoiceTasks() {
+  const { data, error } = await sb.from('invoice_tasks').select('*').order('created_at', {ascending:false});
+  if(error) { console.warn('loadInvoiceTasks:', error.message); state_invoiceTasks = []; return; }
+  state_invoiceTasks = data || [];
+}
+
+// Nhom (category) tu dong doan tu ten shop: prefix "TA-" => tram_anh, "HL-" => hoang_long
+function deriveShopCategory(shop) {
+  if(!shop || !shop.name) return null;
+  const n = shop.name.trim().toUpperCase();
+  if(n.startsWith('TA-')) return 'tram_anh';
+  if(n.startsWith('HL-')) return 'hoang_long';
+  return null;
+}
+
+function openInvoiceTaskModal(defaultCategory, id = null) {
+  document.getElementById('invoiceTaskId').value = id || '';
+  document.getElementById('invoiceTaskCategory').value = '';
+  document.getElementById('invoiceShopId').value = '';
+  document.getElementById('invoiceOrderInput').value = '';
+  document.getElementById('invoiceOrderList').innerHTML = '';
+  document.getElementById('invoiceNote').value = '';
+  document.getElementById('invoiceCategoryHint').textContent = '';
+  document.getElementById('invoiceTaskModalTitle').textContent = id ? 'Sua Task Hoa don' : 'Them Task Hoa don';
+
+  // Render shop panel: tat ca shop + 1 the WEB rieng (WEB luon thuoc Hoang Long)
+  const panel = document.getElementById('invoiceShopPanel');
+  let html = state.shops.map(s => `
+    <div onclick="selectInvoiceShop(this,'${s.id}')" data-shop-id="${s.id}"
+      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
+      <div style="color:var(--text)">${s.name}</div>
+      <span class="badge badge-${s.platform}" style="font-size:10px;margin-top:3px">${platformLabels[s.platform]||s.platform}</span>
+    </div>`).join('');
+  html += `
+    <div onclick="selectInvoiceShop(this,'WEB')" data-shop-id="WEB"
+      style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:var(--bg3);transition:all .15s">
+      <div style="color:var(--text)">Don Website</div>
+      <span class="badge badge-person" style="font-size:10px;margin-top:3px">WEB</span>
+    </div>`;
+  panel.innerHTML = html;
+
+  // Populate nguoi xu ly
+  const aSel = document.getElementById('invoiceAssignee');
+  aSel.innerHTML = '<option value="">Chon nguoi xu ly...</option>';
+  state.members.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(m => {
+    aSel.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+  });
+
+  if(id) {
+    const item = state_invoiceTasks.find(x=>x.id===id);
+    if(item) {
+      document.getElementById('invoiceNote').value = item.note||'';
+      aSel.value = item.assigned_to||'';
+      if(item.order_code) addInvoiceOrderCode(item.order_code);
+      const shopKey = item.shop_id || 'WEB';
+      const shopEl = panel.querySelector(`[data-shop-id="${shopKey}"]`);
+      if(shopEl) selectInvoiceShop(shopEl, shopKey);
+    }
+  }
+
+  openModal('invoiceTaskModal');
+  setTimeout(()=>document.getElementById('invoiceOrderInput')?.focus(), 200);
+}
+
+function selectInvoiceShop(el, shopId) {
+  document.querySelectorAll('#invoiceShopPanel [data-shop-id]').forEach(t => {
+    t.style.background='var(--bg3)'; t.style.borderColor='var(--border)';
+  });
+  el.style.background='#4f7fff22'; el.style.borderColor='var(--accent)';
+  document.getElementById('invoiceShopId').value = shopId;
+
+  let category;
+  if(shopId === 'WEB') {
+    category = 'hoang_long';
+  } else {
+    const shop = getShop(shopId);
+    category = deriveShopCategory(shop);
+  }
+  document.getElementById('invoiceTaskCategory').value = category || '';
+  const hint = document.getElementById('invoiceCategoryHint');
+  const labels = { tram_anh: 'Nhom: Tram Anh', hoang_long: 'Nhom: Hoang Long' };
+  hint.textContent = category ? labels[category] : '⚠️ Shop nay khong xac dinh duoc nhom Tram Anh/Hoang Long (ten shop can bat dau bang "TA-" hoac "HL-")';
+  hint.style.color = category ? 'var(--text3)' : 'var(--red)';
+}
+
+function addInvoiceOrderCode(codeArg) {
+  const input = document.getElementById('invoiceOrderInput');
+  const raw = codeArg !== undefined ? codeArg : input.value.trim();
+  if(!raw) return;
+  // Cho phep dan nhieu ma cach nhau boi xuong dong / dau phay / khoang trang
+  const codes = raw.split(/[\n,;\s]+/).map(c=>c.trim()).filter(Boolean);
+  const list = document.getElementById('invoiceOrderList');
+  const existing = Array.from(list.querySelectorAll('[data-code]')).map(el=>el.dataset.code);
+  codes.forEach(code => {
+    if(existing.includes(code)) return;
+    existing.push(code);
+    const tag = document.createElement('div');
+    tag.dataset.code = code;
+    tag.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;font-family:monospace';
+    tag.innerHTML = `<span style="color:var(--text)">${code}</span><button onclick="this.parentElement.remove()" style="background:transparent;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0">×</button>`;
+    list.appendChild(tag);
+  });
+  if(codeArg === undefined) { input.value=''; input.focus(); }
+}
+
+async function saveInvoiceTask() {
+  const shopId = document.getElementById('invoiceShopId').value;
+  if(!shopId) { alert('Vui long chon shop'); return; }
+  const category = document.getElementById('invoiceTaskCategory').value;
+  if(!category) { alert('Shop nay khong xac dinh duoc nhom Tram Anh/Hoang Long, vui long kiem tra lai ten shop'); return; }
+
+  const assignedTo = document.getElementById('invoiceAssignee').value;
+  if(!assignedTo) { alert('Vui long chon nguoi xu ly'); return; }
+
+  const inputVal = document.getElementById('invoiceOrderInput').value.trim();
+  if(inputVal) addInvoiceOrderCode();
+  const orderCodes = Array.from(document.querySelectorAll('#invoiceOrderList [data-code]')).map(el=>el.dataset.code);
+  if(orderCodes.length === 0) { alert('Vui long nhap it nhat 1 ma don hang'); return; }
+
+  const note = document.getElementById('invoiceNote').value.trim()||null;
+  const id = document.getElementById('invoiceTaskId').value;
+  const realShopId = shopId === 'WEB' ? null : shopId;
+  const channelLabel = shopId === 'WEB' ? 'WEB' : null;
+
+  try {
+    if(id) {
+      const { error } = await sb.from('invoice_tasks').update({
+        shop_id: realShopId, channel_label: channelLabel, order_code: orderCodes[0],
+        category, assigned_to: assignedTo, note
+      }).eq('id', id);
+      if(error) throw error;
+    } else {
+      const rows = orderCodes.map(code => ({
+        shop_id: realShopId, channel_label: channelLabel, order_code: code,
+        category, assigned_to: assignedTo, note,
+        status: 'chua_xu_ly', created_by: currentUser?.id||null
+      }));
+      const { error } = await sb.from('invoice_tasks').insert(rows);
+      if(error) throw error;
+    }
+    closeModal('invoiceTaskModal');
+    await loadInvoiceTasks();
+    renderInvoiceTasks('tram_anh');
+    renderInvoiceTasks('hoang_long');
+    updateBadges();
+  } catch(err) {
+    alert('Loi: ' + (err.message||JSON.stringify(err)));
+  }
+}
+
+async function cycleInvoiceStatus(id) {
+  const item = state_invoiceTasks.find(x=>x.id===id);
+  if(!item) return;
+  const next = { chua_xu_ly:'dang_xu_ly', dang_xu_ly:'xong', xong:'chua_xu_ly' };
+  await sb.from('invoice_tasks').update({ status: next[item.status]||'chua_xu_ly' }).eq('id', id);
+  await loadInvoiceTasks();
+  renderInvoiceTasks('tram_anh');
+  renderInvoiceTasks('hoang_long');
+  updateBadges();
+}
+
+async function deleteInvoiceTask(id) {
+  if(!confirm('Xoa task hoa don nay?')) return;
+  await sb.from('invoice_tasks').delete().eq('id', id);
+  await loadInvoiceTasks();
+  renderInvoiceTasks('tram_anh');
+  renderInvoiceTasks('hoang_long');
+  updateBadges();
+}
+
+function renderInvoiceTasks(category) {
+  const prefix = category === 'tram_anh' ? 'hdTa' : 'hdHl';
+  const statsEl = document.getElementById(`${prefix}Stats`);
+  const tb = document.getElementById(`${prefix}Table`);
+  const assigneeSel = document.getElementById(`${prefix}FilterAssignee`);
+  const statusSel = document.getElementById(`${prefix}FilterStatus`);
+  if(!tb) return;
+
+  // Cap nhat filter nguoi xu ly (1 lan)
+  if(assigneeSel && assigneeSel.options.length <= 1) {
+    state.members.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(m=>{
+      const o=document.createElement('option'); o.value=m.id; o.textContent=m.name; assigneeSel.appendChild(o);
+    });
+  }
+
+  const all = state_invoiceTasks.filter(x=>x.category===category);
+  const statusLabels3 = { chua_xu_ly:'Chua xu ly', dang_xu_ly:'Dang xu ly', xong:'Xong' };
+  const statusClass = { chua_xu_ly:'status-todo', dang_xu_ly:'status-doing', xong:'status-done' };
+  const nextLabel = { chua_xu_ly:'Bat dau xu ly', dang_xu_ly:'Danh dau Xong', xong:'Mo lai' };
+
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Tong task</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Dang xu ly</div><div class="stat-value" style="color:var(--amber)">${all.filter(x=>x.status==='dang_xu_ly').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Xong</div><div class="stat-value" style="color:var(--green)">${all.filter(x=>x.status==='xong').length}</div></div>
+  `;
+
+  const assigneeFilter = assigneeSel?.value||'';
+  const statusFilter = statusSel?.value||'';
+  const filtered = all.filter(x=>{
+    if(assigneeFilter && x.assigned_to!==assigneeFilter) return false;
+    if(statusFilter && x.status!==statusFilter) return false;
+    return true;
+  });
+
+  if(filtered.length===0) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-text">Chua co task hoa don nao</div></div></td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = filtered.map(x => {
+    const shop = x.shop_id ? getShop(x.shop_id) : null;
+    const shopHtml = x.channel_label==='WEB'
+      ? `<span class="badge badge-person">WEB</span>`
+      : (shop && shop.name ? `<span class="badge badge-${shop.platform}">${shop.name}</span>` : '-');
+    const member = getMember(x.assigned_to);
+    return `<tr>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(x.created_at)}</td>
+      <td>${shopHtml}</td>
+      <td style="font-family:monospace;font-size:12px">${x.order_code}</td>
+      <td>${member.name||'-'}</td>
+      <td><span class="status ${statusClass[x.status]||''}" style="cursor:pointer" onclick="cycleInvoiceStatus('${x.id}')" title="${nextLabel[x.status]||''}">${statusLabels3[x.status]||x.status}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${x.note||'-'}</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="openInvoiceTaskModal('${x.category}','${x.id}')">Sua</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInvoiceTask('${x.id}')" style="${canDo('delete')?'':'display:none'}">Xoa</button>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
 
 // ==================== COPY BAO CAO NGAY (Huong B) ====================
@@ -4240,6 +4612,8 @@ function showPage(name, evt) {
   if(name === 'wrong-order') renderWrongOrders();
   if(name === 'worklog') initWorklog();
   if(name === 'nvc') renderNvcComplaints();
+  if(name === 'hd-tram-anh') renderInvoiceTasks('tram_anh');
+  if(name === 'hd-hoang-long') renderInvoiceTasks('hoang_long');
   if(name === 'strategy') { renderStrategyList(); renderStrategyContent(); renderSapoDashboard(); }
 }
 
