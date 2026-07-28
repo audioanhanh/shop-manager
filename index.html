@@ -2663,6 +2663,9 @@ function openInvoiceTaskModal(defaultCategory, id = null) {
     aSel.innerHTML += `<option value="${m.id}">${m.name}</option>`;
   });
 
+  // Nguoi xu ly mac dinh khi tao task moi (doi ten cho khop voi danh sach thanh vien)
+  const DEFAULT_ASSIGNEE_NAME = 'Hào';
+
   if(id) {
     const item = state_invoiceTasks.find(x=>x.id===id);
     if(item) {
@@ -2673,6 +2676,9 @@ function openInvoiceTaskModal(defaultCategory, id = null) {
       const shopEl = panel.querySelector(`[data-shop-id="${shopKey}"]`);
       if(shopEl) selectInvoiceShop(shopEl, shopKey);
     }
+  } else {
+    const defaultMember = state.members.find(m => m.name === DEFAULT_ASSIGNEE_NAME);
+    if(defaultMember) aSel.value = defaultMember.id;
   }
 
   openModal('invoiceTaskModal');
